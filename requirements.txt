@@ -1,5 +1,6 @@
 # Core
 flask>=3.0.0
+gunicorn>=21.2.0
 # flask-login>=0.6.3  # not needed: app uses custom session-based auth
 psycopg2-binary>=2.9.9
 python-dotenv>=1.0.0
