@@ -23,7 +23,7 @@
       <a href="{{ url_for('users') }}"       class="{% if request.endpoint=='users' %}active{% endif %}">Users</a>
       <a href="{{ url_for('generate') }}"    class="btn-generate">⚡ Generate</a>
     {% endif %}
-    <a href="{{ url_for('runs') }}" class="{% if 'run' in request.endpoint %}active{% endif %}">Timetables</a>
+    <a href="{{ url_for('runs') }}" class="{% if request.endpoint and 'run' in request.endpoint %}active{% endif %}">Timetables</a>
     <span class="nav-user">👤 {{ current_user.name }}</span>
     <a href="{{ url_for('auth_logout') }}" class="btn-logout">Logout</a>
   </div>

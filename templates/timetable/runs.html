@@ -31,7 +31,7 @@
             {% endif %}
           </td>
           <td>{{ r.soft_warnings }}</td>
-          <td class="text-muted">{{ r.created_at.strftime('%d %b %H:%M') if r.created_at else '—' }}</td>
+          <td class="text-muted">{{ r.created_at | datetime_format }}</td>
           <td>
             <a href="{{ url_for('run_detail', run_id=r.id) }}" class="btn btn-sm btn-secondary">View</a>
           </td>

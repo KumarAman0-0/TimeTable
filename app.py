@@ -24,6 +24,21 @@ app.secret_key = SECRET_KEY
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
+@app.template_filter("datetime_format")
+def datetime_format(val):
+    if not val:
+        return "—"
+    if hasattr(val, "strftime"):
+        return val.strftime("%d %b %H:%M")
+    s = str(val).replace("T", " ")
+    return s[:16]
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Auth helpers
 # ══════════════════════════════════════════════════════════════════════════════
