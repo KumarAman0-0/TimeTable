@@ -46,21 +46,114 @@
     </button>
   </form>
 
-  <div id="generatingMsg" style="display:none" class="generating-msg mt-3">
-    <div class="spinner"></div>
-    <p>Generating timetable... Please wait.</p>
+  <!-- Live Stopwatch & Countdown Timer Card -->
+  <div id="stopwatchCard" class="stopwatch-card" style="display:none;">
+    <div class="stopwatch-header">
+      <div class="stopwatch-status">
+        <div class="spinner"></div>
+        <span id="stopwatchTitle">Generating Clash-Free Timetable...</span>
+      </div>
+      <span class="badge badge-info" id="solverBadge">CP-SAT Solver</span>
+    </div>
+
+    <div class="stopwatch-grid">
+      <div class="stopwatch-box">
+        <div class="stopwatch-label">⏱️ Time Elapsed (Stopwatch)</div>
+        <div class="stopwatch-digital digital-elapsed" id="elapsedTimer">00:00</div>
+      </div>
+      <div class="stopwatch-box" id="remainingBox">
+        <div class="stopwatch-label">⏳ Time Remaining (Countdown)</div>
+        <div class="stopwatch-digital digital-remaining" id="remainingTimer">00:60</div>
+      </div>
+    </div>
+
+    <div class="stopwatch-bar-container">
+      <div class="stopwatch-bar-fill" id="stopwatchProgressBar"></div>
+    </div>
+
+    <div class="stopwatch-footer">
+      <span id="footerDetails">Searching optimal schedule within 60s limit...</span>
+      <span id="percentText" style="font-weight: 700;">0%</span>
+    </div>
   </div>
 </div>
 
 <script>
+let timerInterval = null;
+
+function formatSeconds(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
 function toggleTimelimit(show) {
   document.getElementById('timeLimitGroup').style.display = show ? 'block' : 'none';
   document.querySelectorAll('.solver-option').forEach(el => el.classList.remove('selected'));
   event.target.closest('.solver-option').classList.add('selected');
 }
+
 function startGenerate() {
-  document.getElementById('genBtn').disabled = true;
-  document.getElementById('generatingMsg').style.display = 'flex';
+  const genBtn = document.getElementById('genBtn');
+  const stopwatchCard = document.getElementById('stopwatchCard');
+  const solverRadio = document.querySelector('input[name="solver"]:checked');
+  const solver = solverRadio ? solverRadio.value : 'heuristic';
+  const timeLimitInput = document.querySelector('input[name="time_limit"]');
+  const totalLimit = parseInt(timeLimitInput && timeLimitInput.value ? timeLimitInput.value : 60, 10) || 60;
+
+  genBtn.disabled = true;
+  stopwatchCard.style.display = 'flex';
+
+  const elapsedEl = document.getElementById('elapsedTimer');
+  const remainingEl = document.getElementById('remainingTimer');
+  const remainingBox = document.getElementById('remainingBox');
+  const progressBar = document.getElementById('stopwatchProgressBar');
+  const footerDetails = document.getElementById('footerDetails');
+  const percentText = document.getElementById('percentText');
+  const solverBadge = document.getElementById('solverBadge');
+
+  let elapsedSec = 0;
+  elapsedEl.textContent = '00:00';
+
+  if (solver === 'cpsat') {
+    solverBadge.textContent = 'CP-SAT (Optimal)';
+    solverBadge.className = 'badge badge-warning';
+    remainingBox.style.display = 'block';
+    remainingEl.textContent = formatSeconds(totalLimit);
+    progressBar.classList.remove('pulse');
+    progressBar.style.width = '0%';
+    percentText.textContent = '0%';
+    footerDetails.textContent = `Searching optimal schedule within ${totalLimit}s limit...`;
+
+    timerInterval = setInterval(() => {
+      elapsedSec++;
+      elapsedEl.textContent = formatSeconds(elapsedSec);
+
+      const remainingSec = Math.max(0, totalLimit - elapsedSec);
+      remainingEl.textContent = formatSeconds(remainingSec);
+
+      const pct = Math.min(100, Math.round((elapsedSec / totalLimit) * 100));
+      progressBar.style.width = pct + '%';
+      percentText.textContent = pct + '%';
+
+      if (elapsedSec >= totalLimit) {
+        footerDetails.textContent = 'Finalizing schedule and building output files...';
+      }
+    }, 1000);
+  } else {
+    solverBadge.textContent = 'Heuristic (Fast)';
+    solverBadge.className = 'badge badge-info';
+    remainingBox.style.display = 'none';
+    progressBar.classList.add('pulse');
+    progressBar.style.width = '100%';
+    footerDetails.textContent = 'Running randomised greedy placements...';
+    percentText.textContent = 'In Progress';
+
+    timerInterval = setInterval(() => {
+      elapsedSec++;
+      elapsedEl.textContent = formatSeconds(elapsedSec);
+    }, 1000);
+  }
 }
 </script>
 {% endblock %}
