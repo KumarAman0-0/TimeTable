@@ -79,7 +79,8 @@ CREATE TABLE timetable_runs (
     solver           VARCHAR(20) NOT NULL,              -- heuristic | cpsat
     status           VARCHAR(20) NOT NULL,              -- draft | published | failed
     hard_violations  INT NOT NULL DEFAULT 0,
-    soft_warnings    INT NOT NULL DEFAULT 0
+    soft_warnings    INT NOT NULL DEFAULT 0,
+    scope            VARCHAR(50) NOT NULL DEFAULT 'All Branches'
 );
 
 -- One row per OCCUPIED period (a 2-period lab = 2 rows with the same session_no).

@@ -12,12 +12,13 @@
   <div class="runs-list card">
     <table class="table">
       <thead>
-        <tr><th>#</th><th>Solver</th><th>Status</th><th>Hard</th><th>Soft</th><th>Created</th><th></th></tr>
+        <tr><th>#</th><th>Scope</th><th>Solver</th><th>Status</th><th>Hard</th><th>Soft</th><th>Created</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in runs %}
         <tr class="{% if active_run and active_run.id == r.id %}row-active{% endif %}">
           <td><a href="{{ url_for('run_detail', run_id=r.id) }}">#{{ r.id }}</a></td>
+          <td><span class="badge badge-primary">{{ r.scope or 'All Branches' }}</span></td>
           <td><span class="badge badge-info">{{ r.solver }}</span></td>
           <td>
             <span class="badge badge-{% if r.status=='published' %}success{% elif r.status=='failed' %}danger{% else %}warning{% endif %}">
@@ -53,6 +54,7 @@
     </div>
     <div class="card-body">
       <table class="table table-sm">
+        <tr><th>Scope</th><td><span class="badge badge-primary">{{ active_run.scope or 'All Branches' }}</span></td></tr>
         <tr><th>Solver</th><td>{{ active_run.solver }}</td></tr>
         <tr><th>Hard Violations</th>
             <td class="{% if active_run.hard_violations==0 %}text-success{% else %}text-danger{% endif %}">

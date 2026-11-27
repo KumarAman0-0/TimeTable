@@ -14,6 +14,7 @@
       {% endif %}
     </h1>
     <p class="text-muted">Run #{{ run.id }} &nbsp;·&nbsp;
+      <span class="badge badge-primary">{{ run.scope or 'All Branches' }}</span> &nbsp;·&nbsp;
       <span class="badge badge-{% if run.status=='published' %}success{% else %}warning{% endif %}">{{ run.status }}</span>
     </p>
   </div>

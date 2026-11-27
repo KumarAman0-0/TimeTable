@@ -571,10 +571,26 @@ def generate():
     if request.method == "POST":
         solver_name = request.form.get("solver", DEFAULT_SOLVER)
         time_limit  = int(request.form.get("time_limit", CPSAT_TIME_LIMIT))
+        scope_type  = request.form.get("scope", "all")
+
+        selected_branch_ids = []
+        scope_label = "All Branches"
+        if scope_type == "selective":
+            raw_ids = request.form.getlist("branch_ids")
+            selected_branch_ids = [int(x) for x in raw_ids if x and str(x).isdigit()]
+            if selected_branch_ids:
+                ph = ",".join(["%s"] * len(selected_branch_ids))
+                bcodes = [r["code"] for r in query(f"SELECT code FROM branches WHERE id IN ({ph}) ORDER BY code", tuple(selected_branch_ids))]
+                if len(bcodes) == 1:
+                    scope_label = f"{bcodes[0]} Only"
+                else:
+                    scope_label = ", ".join(bcodes)
+            else:
+                selected_branch_ids = None
 
         conn = get_db()
         try:
-            problem = load_problem(conn)
+            problem = load_problem(conn, branch_ids=selected_branch_ids if selected_branch_ids else None)
         finally:
             conn.close()
 
@@ -593,7 +609,8 @@ def generate():
         conn = get_db()
         try:
             run_id = save_run(conn, problem, entries, solver_name, hard, soft,
-                              created_by=session.get("user_id"))
+                              created_by=session.get("user_id"),
+                              scope=scope_label)
         finally:
             conn.close()
 
@@ -601,10 +618,10 @@ def generate():
             os.makedirs(OUTPUT_DIR, exist_ok=True)
             to_json (problem, entries, f"{OUTPUT_DIR}/run_{run_id}.json")
             to_excel(problem, entries, f"{OUTPUT_DIR}/run_{run_id}.xlsx")
-            flash(f"✅ Timetable generated in {elapsed}s — "
+            flash(f"✅ Timetable generated ({scope_label}) in {elapsed}s — "
                   f"{len(hard)} hard violations, {len(soft)} soft warnings.", "success")
         else:
-            flash("❌ No feasible timetable found. Add more rooms/teachers or relax constraints.", "danger")
+            flash(f"❌ No feasible timetable found for {scope_label}. Add more rooms/teachers or relax constraints.", "danger")
 
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
             return jsonify({
@@ -613,14 +630,17 @@ def generate():
                 "redirect_url": url_for("run_detail", run_id=run_id),
                 "elapsed": elapsed,
                 "hard_violations": len(hard),
-                "soft_warnings": len(soft)
+                "soft_warnings": len(soft),
+                "scope": scope_label
             })
 
         return redirect(url_for("run_detail", run_id=run_id))
 
+    branches = query("SELECT id, code, name FROM branches ORDER BY code")
     return render_template("admin/generate.html",
                            default_solver=DEFAULT_SOLVER,
-                           default_time_limit=CPSAT_TIME_LIMIT)
+                           default_time_limit=CPSAT_TIME_LIMIT,
+                           branches=branches)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

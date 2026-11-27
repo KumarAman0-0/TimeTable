@@ -9,16 +9,17 @@ from .models import Problem, Entry
 
 def save_run(conn, problem: Problem, entries: list[Entry],
              solver: str, hard: list, soft: list,
-             created_by: int | None = None) -> int:
+             created_by: int | None = None,
+             scope: str = "All Branches") -> int:
     """Insert a timetable_run row and all entry rows. Returns the new run_id."""
     status = "failed" if entries is None else ("draft" if hard else "draft")
 
     with conn.cursor() as cur:
         cur.execute(
             """INSERT INTO timetable_runs
-               (created_by, solver, status, hard_violations, soft_warnings)
-               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-            (created_by, solver, status, len(hard), len(soft))
+               (created_by, solver, status, hard_violations, soft_warnings, scope)
+               VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+            (created_by, solver, status, len(hard), len(soft), scope)
         )
         run_id = cur.fetchone()[0]
 

@@ -246,7 +246,8 @@ CREATE TABLE IF NOT EXISTS timetable_runs (
     solver           TEXT NOT NULL,
     status           TEXT NOT NULL,
     hard_violations  INTEGER NOT NULL DEFAULT 0,
-    soft_warnings    INTEGER NOT NULL DEFAULT 0
+    soft_warnings    INTEGER NOT NULL DEFAULT 0,
+    scope            TEXT DEFAULT 'All Branches'
 );
 
 CREATE TABLE IF NOT EXISTS timetable_entries (
@@ -294,6 +295,15 @@ def _auto_init(conn):
                     cur.execute(f"ALTER TABLE teachers ADD COLUMN {col} {col_type} DEFAULT NULL")
                 except Exception:
                     pass
+
+        # Ensure scope column exists in timetable_runs table
+        try:
+            cur.execute("SELECT scope FROM timetable_runs LIMIT 1")
+        except Exception:
+            try:
+                cur.execute("ALTER TABLE timetable_runs ADD COLUMN scope TEXT DEFAULT 'All Branches'")
+            except Exception:
+                pass
 
         # Seed admin user
         cur.execute("SELECT id FROM users WHERE email=%s", ("admin@college.edu",))
