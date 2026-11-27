@@ -83,6 +83,36 @@ class TestAuthRoutes(unittest.TestCase):
         rv = self.client.get("/dashboard", follow_redirects=False)
         self.assertIn(rv.status_code, (301, 302))
 
+    def test_register_page_returns_200(self):
+        rv = self.client.get("/register")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(b"Create Account", rv.data)
+
+    def test_register_password_mismatch(self):
+        rv = self.client.post("/register",
+                              data={"name": "Test User", "email": "test@test.com", "role": "student",
+                                    "password": "password123", "confirm_password": "differentpassword"},
+                              follow_redirects=True)
+        self.assertIn(b"Passwords do not match", rv.data)
+
+    def test_register_short_password(self):
+        rv = self.client.post("/register",
+                              data={"name": "Test User", "email": "test@test.com", "role": "student",
+                                    "password": "123", "confirm_password": "123"},
+                              follow_redirects=True)
+        self.assertIn(b"at least 6 characters", rv.data)
+
+    def test_register_success(self):
+        with self.app.app_context():
+            with unittest.mock.patch("app.query", side_effect=[None, {"id": 99, "name": "New User", "email": "new@user.com", "role": "student"}, None]):
+                with unittest.mock.patch("app.execute"):
+                    rv = self.client.post("/register",
+                                          data={"name": "New User", "email": "new@user.com", "role": "student",
+                                                "password": "password123", "confirm_password": "password123"},
+                                          follow_redirects=False)
+                    self.assertIn(rv.status_code, (301, 302))
+                    self.assertIn("dashboard", rv.headers.get("Location", ""))
+
     def test_404_handler(self):
         rv = self.client.get("/this-route-does-not-exist-xyz")
         self.assertEqual(rv.status_code, 404)

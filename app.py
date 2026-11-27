@@ -99,6 +99,61 @@ def auth_login():
     return render_template("auth/login.html")
 
 
+@app.route("/register", methods=["GET", "POST"])
+def auth_register():
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        role = request.form.get("role", "student").strip().lower()
+        password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+
+        if not name or not email or not password:
+            flash("Please fill in all required fields.", "danger")
+            return render_template("auth/register.html", name=name, email=email, role=role)
+
+        if role not in ("admin", "teacher", "student"):
+            role = "student"
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.", "danger")
+            return render_template("auth/register.html", name=name, email=email, role=role)
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return render_template("auth/register.html", name=name, email=email, role=role)
+
+        existing = query("SELECT id FROM users WHERE email=%s", (email,), one=True)
+        if existing:
+            flash("An account with this email already exists. Please sign in.", "warning")
+            return redirect(url_for("auth_login"))
+
+        pw_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode()
+        execute(
+            "INSERT INTO users (name, email, password_hash, role) VALUES (%s,%s,%s,%s)",
+            (name, email, pw_hash, role)
+        )
+        user = query("SELECT * FROM users WHERE email=%s", (email,), one=True)
+
+        if role == "teacher":
+            teacher_exists = query("SELECT id FROM teachers WHERE user_id=%s", (user["id"],), one=True)
+            if not teacher_exists:
+                execute(
+                    "INSERT INTO teachers (user_id, name, min_per_day, max_per_day) VALUES (%s,%s,%s,%s)",
+                    (user["id"], name, 2, 5)
+                )
+
+        session["user_id"] = user["id"]
+        session["role"]    = user["role"]
+        session["name"]    = user["name"]
+        flash(f"Account created successfully! Welcome, {name}.", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("auth/register.html")
+
+
 @app.route("/logout")
 def auth_logout():
     session.clear()
