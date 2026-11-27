@@ -89,3 +89,20 @@ function refreshStats() {
     })
     .catch(() => {});
 }
+
+// ── Password visibility toggle ────────────────────────────────
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+
+  const eyeIcon = btn.querySelector('.eye-icon');
+  const eyeOffIcon = btn.querySelector('.eye-off-icon');
+  if (eyeIcon && eyeOffIcon) {
+    eyeIcon.style.display = isPassword ? 'none' : 'inline-block';
+    eyeOffIcon.style.display = isPassword ? 'inline-block' : 'none';
+    btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    btn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+  }
+}
