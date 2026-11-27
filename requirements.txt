@@ -1,0 +1,15 @@
+# Core
+flask>=3.0.0
+# flask-login>=0.6.3  # not needed: app uses custom session-based auth
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+bcrypt>=4.1.2
+
+# Timetable engine
+openpyxl>=3.1.0
+
+# PDF export
+reportlab>=4.1.0
+
+# Optional: optimal solver (comment out if not needed)
+ortools>=9.8.0

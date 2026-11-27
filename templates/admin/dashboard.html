@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p>Welcome back, <strong>{{ current_user.name }}</strong>!</p>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">🏫</div>
+    <div class="stat-num">{{ stats.branches }}</div>
+    <div class="stat-label">Branches</div>
+    <a href="{{ url_for('branches') }}" class="stat-link">Manage →</a>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📚</div>
+    <div class="stat-num">{{ stats.sections }}</div>
+    <div class="stat-label">Sections</div>
+    <a href="{{ url_for('sections') }}" class="stat-link">Manage →</a>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">👩‍🏫</div>
+    <div class="stat-num">{{ stats.teachers }}</div>
+    <div class="stat-label">Teachers</div>
+    <a href="{{ url_for('teachers') }}" class="stat-link">Manage →</a>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🚪</div>
+    <div class="stat-num">{{ stats.rooms }}</div>
+    <div class="stat-label">Rooms</div>
+    <a href="{{ url_for('rooms') }}" class="stat-link">Manage →</a>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📖</div>
+    <div class="stat-num">{{ stats.courses }}</div>
+    <div class="stat-label">Courses</div>
+    <a href="{{ url_for('courses') }}" class="stat-link">Manage →</a>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🔗</div>
+    <div class="stat-num">{{ stats.assignments }}</div>
+    <div class="stat-label">Assignments</div>
+    <a href="{{ url_for('assignments') }}" class="stat-link">Manage →</a>
+  </div>
+</div>
+
+{% if last_run %}
+<div class="card mt-4">
+  <div class="card-header">Last Timetable Run</div>
+  <div class="card-body">
+    <table class="table">
+      <tr><th>Run ID</th><td>#{{ last_run.id }}</td></tr>
+      <tr><th>Solver</th><td><span class="badge badge-info">{{ last_run.solver }}</span></td></tr>
+      <tr><th>Status</th>
+          <td><span class="badge badge-{% if last_run.status=='published' %}success{% elif last_run.status=='failed' %}danger{% else %}warning{% endif %}">
+            {{ last_run.status }}</span></td></tr>
+      <tr><th>Hard Violations</th><td>{{ last_run.hard_violations }}</td></tr>
+      <tr><th>Soft Warnings</th><td>{{ last_run.soft_warnings }}</td></tr>
+      <tr><th>Created</th><td>{{ last_run.created_at }}</td></tr>
+    </table>
+    <a href="{{ url_for('run_detail', run_id=last_run.id) }}" class="btn btn-secondary">View Run</a>
+    <a href="{{ url_for('export_excel', run_id=last_run.id) }}" class="btn btn-success">⬇ Excel</a>
+    <a href="{{ url_for('export_json', run_id=last_run.id) }}" class="btn btn-secondary">⬇ JSON</a>
+  </div>
+</div>
+{% else %}
+<div class="card mt-4">
+  <div class="card-body center">
+    <p>No timetable has been generated yet.</p>
+    <a href="{{ url_for('generate') }}" class="btn btn-primary">⚡ Generate First Timetable</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="quick-actions mt-4">
+  <h3>Quick Actions</h3>
+  <a href="{{ url_for('generate') }}" class="btn btn-primary">⚡ Generate Timetable</a>
+  <a href="{{ url_for('runs') }}"     class="btn btn-secondary">📋 View All Runs</a>
+</div>
+{% endblock %}

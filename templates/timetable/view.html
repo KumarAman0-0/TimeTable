@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Timetable View — TimetableGen{% endblock %}
+
+{% block content %}
+{% set days = ['Mon','Tue','Wed','Thu','Fri','Sat'] %}
+{% set slot_times = ['09:00-09:50','09:50-10:40','10:40-11:30','11:30-12:20','12:20-13:10','13:10-14:00','14:00-14:50','14:50-15:40'] %}
+
+<div class="page-header">
+  <div>
+    <h1>
+      {% if subject_type == 'section' %}📚 Section: {{ subject.name }}
+      {% elif subject_type == 'teacher' %}👩‍🏫 {{ subject.name }}
+      {% else %}🚪 Room: {{ subject.name }}
+      {% endif %}
+    </h1>
+    <p class="text-muted">Run #{{ run.id }} &nbsp;·&nbsp;
+      <span class="badge badge-{% if run.status=='published' %}success{% else %}warning{% endif %}">{{ run.status }}</span>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ url_for('run_detail', run_id=run.id) }}" class="btn btn-secondary">← Back to Run</a>
+    <a href="{{ url_for('export_excel', run_id=run.id) }}" class="btn btn-success">⬇ Excel</a>
+    <a href="{{ url_for('export_pdf',   run_id=run.id) }}" class="btn btn-secondary">⬇ PDF</a>
+  </div>
+</div>
+
+<!-- Build grid from entries -->
+{% set grid = {} %}
+{% for e in entries %}
+  {% set key = e.day ~ '-' ~ e.slot %}
+  {% if subject_type == 'section' %}
+    {% set cell = e.course_name ~ '\n' ~ e.teacher_name ~ '\n' ~ e.room_name %}
+  {% elif subject_type == 'teacher' %}
+    {% set cell = e.course_name ~ '\n' ~ e.section_name ~ '\n' ~ e.room_name %}
+  {% else %}
+    {% set cell = e.course_name ~ '\n' ~ e.section_name ~ '\n' ~ e.teacher_name %}
+  {% endif %}
+  {% if grid.update({key: cell}) %}{% endif %}
+{% endfor %}
+
+<div class="card">
+  <div class="timetable-wrapper">
+    <table class="timetable">
+      <thead>
+        <tr>
+          <th class="time-col">Time</th>
+          {% for d in days %}<th>{{ d }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in range(8) %}
+        <tr>
+          <td class="time-col">{{ slot_times[s] }}</td>
+          {% for d in range(6) %}
+            {% set key = d ~ '-' ~ s %}
+            {% if lunch_slot is not none and s == lunch_slot %}
+              <td class="cell-lunch">LUNCH</td>
+            {% elif grid.get(key) %}
+              <td class="cell-filled">
+                {% set parts = grid[key].split('\n') %}
+                <span class="cell-course">{{ parts[0] }}</span>
+                {% if parts|length > 1 %}<span class="cell-teacher">{{ parts[1] }}</span>{% endif %}
+                {% if parts|length > 2 %}<span class="cell-room">{{ parts[2] }}</span>{% endif %}
+              </td>
+            {% else %}
+              <td class="cell-empty"></td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="legend mt-2">
+  <span class="legend-item"><span class="legend-box cell-filled-mini"></span> Class</span>
+  <span class="legend-item"><span class="legend-box cell-lunch-mini"></span> Lunch</span>
+  <span class="legend-item"><span class="legend-box cell-empty-mini"></span> Free</span>
+</div>
+{% endblock %}

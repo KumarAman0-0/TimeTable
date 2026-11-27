@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Branches — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Branches</h1>
+  <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Branch</button>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Code</th><th>Name</th><th>First Slot</th><th>Last Slot</th><th>Lunch Slot</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for b in branches %}
+      <tr>
+        <td><span class="badge badge-info">{{ b.code }}</span></td>
+        <td>{{ b.name }}</td>
+        <td>Slot {{ b.first_slot }}</td>
+        <td>Slot {{ b.last_slot }}</td>
+        <td>Slot {{ b.lunch_slot }}</td>
+        <td>
+          <button class="btn btn-sm btn-secondary"
+            onclick="fillEdit({{ b.id }}, '{{ b.code }}', '{{ b.name }}', {{ b.first_slot }}, {{ b.last_slot }}, {{ b.lunch_slot }})">Edit</button>
+          <form method="POST" action="{{ url_for('branch_delete', bid=b.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete branch {{ b.name }}?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="center">No branches yet. Add one!</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Add Branch</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <form method="POST" action="{{ url_for('branch_add') }}">
+      <div class="form-group"><label>Code (e.g. CSE)</label>
+        <input name="code" class="form-control" required placeholder="CSE"></div>
+      <div class="form-group"><label>Full Name</label>
+        <input name="name" class="form-control" required placeholder="Computer Science & Engg."></div>
+      <div class="form-row">
+        <div class="form-group"><label>First Slot (0–7)</label>
+          <input name="first_slot" type="number" min="0" max="7" value="0" class="form-control"></div>
+        <div class="form-group"><label>Last Slot (exclusive, 1–8)</label>
+          <input name="last_slot" type="number" min="1" max="8" value="8" class="form-control"></div>
+        <div class="form-group"><label>Lunch Slot (0–7)</label>
+          <input name="lunch_slot" type="number" min="0" max="7" value="4" class="form-control"></div>
+      </div>
+      <button type="submit" class="btn btn-primary">Add Branch</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Edit Branch</h3><span onclick="hideModal('editModal')" class="modal-close">✕</span></div>
+    <form id="editForm" method="POST">
+      <div class="form-group"><label>Code</label>
+        <input id="edit_code" name="code" class="form-control" required></div>
+      <div class="form-group"><label>Full Name</label>
+        <input id="edit_name" name="name" class="form-control" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>First Slot</label>
+          <input id="edit_first" name="first_slot" type="number" min="0" max="7" class="form-control"></div>
+        <div class="form-group"><label>Last Slot</label>
+          <input id="edit_last" name="last_slot" type="number" min="1" max="8" class="form-control"></div>
+        <div class="form-group"><label>Lunch Slot</label>
+          <input id="edit_lunch" name="lunch_slot" type="number" min="0" max="7" class="form-control"></div>
+      </div>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function fillEdit(id, code, name, first, last, lunch) {
+  document.getElementById('edit_code').value  = code;
+  document.getElementById('edit_name').value  = name;
+  document.getElementById('edit_first').value = first;
+  document.getElementById('edit_last').value  = last;
+  document.getElementById('edit_lunch').value = lunch;
+  document.getElementById('editForm').action  = `/branches/${id}/edit`;
+  showModal('editModal');
+}
+</script>
+{% endblock %}

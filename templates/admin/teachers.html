@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Teachers — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Teachers</h1>
+  <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Teacher</button>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Name</th><th>Min/Day</th><th>Max/Day</th><th>Unavailable Slots</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for t in teachers %}
+      <tr>
+        <td>{{ t.name }}</td>
+        <td>{{ t.min_per_day }}</td>
+        <td>{{ t.max_per_day }}</td>
+        <td>
+          {% set ua = unavail.get(t.id, []) %}
+          {% if ua %}
+            <span class="badge badge-warning">{{ ua|length }} slots blocked</span>
+          {% else %}
+            <span class="text-muted">None</span>
+          {% endif %}
+          <button class="btn btn-sm btn-secondary" onclick="showUnavailModal({{ t.id }}, '{{ t.name }}', {{ ua | tojson }})">Edit</button>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-secondary"
+            onclick="fillEdit({{ t.id }}, '{{ t.name }}', {{ t.min_per_day }}, {{ t.max_per_day }})">Edit</button>
+          <form method="POST" action="{{ url_for('teacher_delete', tid=t.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete teacher {{ t.name }}?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="center">No teachers yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Add Teacher</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <form method="POST" action="{{ url_for('teacher_add') }}">
+      <div class="form-group"><label>Name</label>
+        <input name="name" class="form-control" required placeholder="Dr. R. Sharma"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Min periods/day (soft)</label>
+          <input name="min_per_day" type="number" min="0" max="8" value="2" class="form-control"></div>
+        <div class="form-group"><label>Max periods/day (hard)</label>
+          <input name="max_per_day" type="number" min="1" max="8" value="5" class="form-control"></div>
+      </div>
+      <button type="submit" class="btn btn-primary">Add Teacher</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Edit Teacher</h3><span onclick="hideModal('editModal')" class="modal-close">✕</span></div>
+    <form id="editForm" method="POST">
+      <div class="form-group"><label>Name</label><input id="edit_name" name="name" class="form-control" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>Min/Day</label>
+          <input id="edit_min" name="min_per_day" type="number" min="0" max="8" class="form-control"></div>
+        <div class="form-group"><label>Max/Day</label>
+          <input id="edit_max" name="max_per_day" type="number" min="1" max="8" class="form-control"></div>
+      </div>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  </div>
+</div>
+
+<!-- Unavailability Modal -->
+<div id="unavailModal" class="modal" style="display:none">
+  <div class="modal-content modal-wide">
+    <div class="modal-header">
+      <h3>Unavailability: <span id="unavail_teacher_name"></span></h3>
+      <span onclick="hideModal('unavailModal')" class="modal-close">✕</span>
+    </div>
+    <form id="unavailForm" method="POST">
+      <p class="text-muted">Check the slots when this teacher is <strong>NOT available</strong>.</p>
+      <div class="unavail-grid">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Slot \ Day</th>
+              {% set days = ['Mon','Tue','Wed','Thu','Fri','Sat'] %}
+              {% for d in days %}<th>{{ d }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% set slots = ['09:00-09:50','09:50-10:40','10:40-11:30','11:30-12:20','12:20-13:10','13:10-14:00','14:00-14:50','14:50-15:40'] %}
+            {% for s in range(8) %}
+            <tr>
+              <td class="slot-time">{{ slots[s] }}</td>
+              {% for d in range(6) %}
+              <td class="center">
+                <input type="checkbox" name="slots" value="{{ d }}-{{ s }}"
+                       class="unavail-cb" data-day="{{ d }}" data-slot="{{ s }}">
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-2">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="selectAllSaturday()">Block All Saturday</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="clearAll()">Clear All</button>
+      </div>
+      <button type="submit" class="btn btn-primary mt-2">Save Unavailability</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+const SLOTS = ['09:00','09:50','10:40','11:30','12:20','13:10','14:00','14:50'];
+
+function fillEdit(id, name, mn, mx) {
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_min').value  = mn;
+  document.getElementById('edit_max').value  = mx;
+  document.getElementById('editForm').action = `/teachers/${id}/edit`;
+  showModal('editModal');
+}
+
+function showUnavailModal(tid, name, ua) {
+  document.getElementById('unavail_teacher_name').textContent = name;
+  document.getElementById('unavailForm').action = `/teachers/${tid}/unavailability`;
+  // Clear all checkboxes
+  document.querySelectorAll('.unavail-cb').forEach(cb => cb.checked = false);
+  // Check the ones that are unavailable
+  ua.forEach(([d, s]) => {
+    const cb = document.querySelector(`.unavail-cb[data-day="${d}"][data-slot="${s}"]`);
+    if (cb) cb.checked = true;
+  });
+  showModal('unavailModal');
+}
+
+function selectAllSaturday() {
+  document.querySelectorAll('.unavail-cb[data-day="5"]').forEach(cb => cb.checked = true);
+}
+function clearAll() {
+  document.querySelectorAll('.unavail-cb').forEach(cb => cb.checked = false);
+}
+</script>
+{% endblock %}

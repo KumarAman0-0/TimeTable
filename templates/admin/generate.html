@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Generate Timetable — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>⚡ Generate Timetable</h1>
+  <p>Choose solver settings and click Generate. The engine will find a clash-free timetable.</p>
+</div>
+
+<div class="card generate-card">
+  <form method="POST" action="{{ url_for('generate') }}" id="genForm">
+    <h3>Solver Selection</h3>
+    <div class="solver-options">
+      <label class="solver-option {% if default_solver=='heuristic' %}selected{% endif %}">
+        <input type="radio" name="solver" value="heuristic"
+               {% if default_solver=='heuristic' %}checked{% endif %}
+               onchange="toggleTimelimit(false)">
+        <div class="solver-title">🔀 Heuristic</div>
+        <div class="solver-desc">Randomised greedy — fast, no extra libraries, good quality. Recommended for most cases.</div>
+      </label>
+      <label class="solver-option {% if default_solver=='cpsat' %}selected{% endif %}">
+        <input type="radio" name="solver" value="cpsat"
+               {% if default_solver=='cpsat' %}checked{% endif %}
+               onchange="toggleTimelimit(true)">
+        <div class="solver-title">🧮 CP-SAT (Optimal)</div>
+        <div class="solver-desc">Google OR-Tools constraint solver — finds the globally optimal timetable. Requires <code>ortools</code>.</div>
+      </label>
+    </div>
+
+    <div class="form-group mt-3" id="timeLimitGroup"
+         style="display:{% if default_solver=='cpsat' %}block{% else %}none{% endif %}">
+      <label>Time Limit (seconds) for CP-SAT</label>
+      <input type="number" name="time_limit" min="10" max="600"
+             value="{{ default_time_limit }}" class="form-control" style="width:200px">
+      <small class="text-muted">More time = better solution. 60s is usually sufficient.</small>
+    </div>
+
+    <div class="generate-info mt-3">
+      <div class="info-item"><span class="info-icon">ℹ️</span> The solver reads all your branches, sections, teachers, rooms, courses, and assignments from the database.</div>
+      <div class="info-item"><span class="info-icon">⏱️</span> Heuristic solver typically finishes in under 5 seconds.</div>
+      <div class="info-item"><span class="info-icon">📊</span> Results are saved as JSON and Excel in the <code>outputs/</code> folder.</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg mt-4" id="genBtn" onclick="startGenerate()">
+      ⚡ Generate Timetable
+    </button>
+  </form>
+
+  <div id="generatingMsg" style="display:none" class="generating-msg mt-3">
+    <div class="spinner"></div>
+    <p>Generating timetable... Please wait.</p>
+  </div>
+</div>
+
+<script>
+function toggleTimelimit(show) {
+  document.getElementById('timeLimitGroup').style.display = show ? 'block' : 'none';
+  document.querySelectorAll('.solver-option').forEach(el => el.classList.remove('selected'));
+  event.target.closest('.solver-option').classList.add('selected');
+}
+function startGenerate() {
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('generatingMsg').style.display = 'flex';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Timetable Runs — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Timetable Runs</h1>
+  <a href="{{ url_for('generate') }}" class="btn btn-primary">⚡ Generate New</a>
+</div>
+
+<div class="runs-layout">
+  <!-- Runs list -->
+  <div class="runs-list card">
+    <table class="table">
+      <thead>
+        <tr><th>#</th><th>Solver</th><th>Status</th><th>Hard</th><th>Soft</th><th>Created</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in runs %}
+        <tr class="{% if active_run and active_run.id == r.id %}row-active{% endif %}">
+          <td><a href="{{ url_for('run_detail', run_id=r.id) }}">#{{ r.id }}</a></td>
+          <td><span class="badge badge-info">{{ r.solver }}</span></td>
+          <td>
+            <span class="badge badge-{% if r.status=='published' %}success{% elif r.status=='failed' %}danger{% else %}warning{% endif %}">
+              {{ r.status }}</span>
+          </td>
+          <td>
+            {% if r.hard_violations == 0 %}
+              <span class="text-success">✓ 0</span>
+            {% else %}
+              <span class="text-danger">✗ {{ r.hard_violations }}</span>
+            {% endif %}
+          </td>
+          <td>{{ r.soft_warnings }}</td>
+          <td class="text-muted">{{ r.created_at.strftime('%d %b %H:%M') if r.created_at else '—' }}</td>
+          <td>
+            <a href="{{ url_for('run_detail', run_id=r.id) }}" class="btn btn-sm btn-secondary">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="center">No runs yet. <a href="{{ url_for('generate') }}">Generate one!</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Run detail panel -->
+  {% if active_run %}
+  <div class="run-detail card">
+    <div class="card-header">
+      Run #{{ active_run.id }}
+      <span class="badge badge-{% if active_run.status=='published' %}success{% elif active_run.status=='failed' %}danger{% else %}warning{% endif %}">
+        {{ active_run.status }}</span>
+    </div>
+    <div class="card-body">
+      <table class="table table-sm">
+        <tr><th>Solver</th><td>{{ active_run.solver }}</td></tr>
+        <tr><th>Hard Violations</th>
+            <td class="{% if active_run.hard_violations==0 %}text-success{% else %}text-danger{% endif %}">
+              {{ active_run.hard_violations }}</td></tr>
+        <tr><th>Soft Warnings</th><td>{{ active_run.soft_warnings }}</td></tr>
+        <tr><th>Created</th><td>{{ active_run.created_at }}</td></tr>
+      </table>
+
+      {% if active_run.status != 'published' and active_run.hard_violations == 0 %}
+      <form method="POST" action="{{ url_for('run_publish', run_id=active_run.id) }}">
+        <button class="btn btn-success">✅ Publish</button>
+      </form>
+      {% endif %}
+
+      <div class="export-btns mt-2">
+        <a href="{{ url_for('export_excel', run_id=active_run.id) }}" class="btn btn-success">⬇ Excel</a>
+        <a href="{{ url_for('export_json',  run_id=active_run.id) }}" class="btn btn-secondary">⬇ JSON</a>
+        <a href="{{ url_for('export_pdf',   run_id=active_run.id) }}" class="btn btn-secondary">⬇ PDF</a>
+      </div>
+
+      {% if sections %}
+      <h4 class="mt-3">View by Section</h4>
+      <div class="view-links">
+        {% for s in sections %}
+        <a href="{{ url_for('view_section', run_id=active_run.id, sec_id=s.id) }}" class="btn btn-sm btn-outline">
+          [{{ s.branch_code }}] {{ s.name }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if teachers %}
+      <h4 class="mt-3">View by Teacher</h4>
+      <div class="view-links">
+        {% for t in teachers %}
+        <a href="{{ url_for('view_teacher', run_id=active_run.id, tea_id=t.id) }}" class="btn btn-sm btn-outline">
+          {{ t.name }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if rooms %}
+      <h4 class="mt-3">View by Room</h4>
+      <div class="view-links">
+        {% for r in rooms %}
+        <a href="{{ url_for('view_room', run_id=active_run.id, room_id=r.id) }}" class="btn btn-sm btn-outline">
+          {{ r.name }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Sections — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Sections</h1>
+  <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Section</button>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Branch</th><th>Section Name</th><th>Strength</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sections %}
+      <tr>
+        <td><span class="badge badge-info">{{ s.code }}</span></td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.strength }}</td>
+        <td>
+          <button class="btn btn-sm btn-secondary"
+            onclick="fillEdit({{ s.id }}, {{ s.branch_id }}, '{{ s.name }}', {{ s.strength }})">Edit</button>
+          <form method="POST" action="{{ url_for('section_delete', sid=s.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete section?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="center">No sections yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Add Section</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <form method="POST" action="{{ url_for('section_add') }}">
+      <div class="form-group"><label>Branch</label>
+        <select name="branch_id" class="form-control" required>
+          {% for b in branches %}<option value="{{ b.id }}">{{ b.code }} – {{ b.name }}</option>{% endfor %}
+        </select></div>
+      <div class="form-group"><label>Section Name (e.g. 3rd Yr – A)</label>
+        <input name="name" class="form-control" required placeholder="3rd Yr – A"></div>
+      <div class="form-group"><label>Strength (students)</label>
+        <input name="strength" type="number" min="1" value="60" class="form-control"></div>
+      <button type="submit" class="btn btn-primary">Add Section</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Edit Section</h3><span onclick="hideModal('editModal')" class="modal-close">✕</span></div>
+    <form id="editForm" method="POST">
+      <div class="form-group"><label>Branch</label>
+        <select id="edit_branch" name="branch_id" class="form-control">
+          {% for b in branches %}<option value="{{ b.id }}">{{ b.code }} – {{ b.name }}</option>{% endfor %}
+        </select></div>
+      <div class="form-group"><label>Section Name</label>
+        <input id="edit_name" name="name" class="form-control" required></div>
+      <div class="form-group"><label>Strength</label>
+        <input id="edit_strength" name="strength" type="number" min="1" class="form-control"></div>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function fillEdit(id, branch_id, name, strength) {
+  document.getElementById('edit_branch').value   = branch_id;
+  document.getElementById('edit_name').value     = name;
+  document.getElementById('edit_strength').value = strength;
+  document.getElementById('editForm').action     = `/sections/${id}/edit`;
+  showModal('editModal');
+}
+</script>
+{% endblock %}

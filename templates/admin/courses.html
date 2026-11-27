@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Courses — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Courses</h1>
+  <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Course</button>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Code</th><th>Name</th><th>Kind</th><th>Sessions/Week</th><th>Block</th><th>Room Type</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in courses %}
+      <tr>
+        <td><span class="badge badge-info">{{ c.code }}</span></td>
+        <td>{{ c.name }}</td>
+        <td><span class="badge badge-{% if c.kind=='lab' %}warning{% else %}secondary{% endif %}">{{ c.kind }}</span></td>
+        <td>{{ c.weekly_sessions }}</td>
+        <td>{{ c.block_periods }}</td>
+        <td>{{ c.room_type }}</td>
+        <td>
+          <button class="btn btn-sm btn-secondary"
+            onclick="fillEdit({{ c.id }}, '{{ c.code }}', '{{ c.name }}', '{{ c.kind }}', {{ c.weekly_sessions }}, {{ c.block_periods }}, '{{ c.room_type }}')">Edit</button>
+          <form method="POST" action="{{ url_for('course_delete', cid=c.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete course?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="center">No courses yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Add Course</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <form method="POST" action="{{ url_for('course_add') }}">
+      <div class="form-row">
+        <div class="form-group"><label>Code</label>
+          <input name="code" class="form-control" required placeholder="DSA"></div>
+        <div class="form-group"><label>Name</label>
+          <input name="name" class="form-control" required placeholder="Data Structures"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Kind</label>
+          <select name="kind" class="form-control" onchange="toggleBlock(this)">
+            <option value="theory">theory</option>
+            <option value="lab">lab</option>
+          </select></div>
+        <div class="form-group"><label>Sessions/Week</label>
+          <input name="weekly_sessions" type="number" min="1" max="10" value="3" class="form-control"></div>
+        <div class="form-group"><label>Block (periods/session)</label>
+          <input name="block_periods" id="block_periods" type="number" min="1" max="4" value="1" class="form-control"></div>
+      </div>
+      <div class="form-group"><label>Room Type Required</label>
+        <select name="room_type" class="form-control">
+          {% for rt in room_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
+        </select></div>
+      <button type="submit" class="btn btn-primary">Add Course</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Edit Course</h3><span onclick="hideModal('editModal')" class="modal-close">✕</span></div>
+    <form id="editForm" method="POST">
+      <div class="form-row">
+        <div class="form-group"><label>Code</label><input id="e_code" name="code" class="form-control"></div>
+        <div class="form-group"><label>Name</label><input id="e_name" name="name" class="form-control"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Kind</label>
+          <select id="e_kind" name="kind" class="form-control">
+            <option value="theory">theory</option><option value="lab">lab</option>
+          </select></div>
+        <div class="form-group"><label>Sessions/Week</label>
+          <input id="e_weekly" name="weekly_sessions" type="number" min="1" class="form-control"></div>
+        <div class="form-group"><label>Block</label>
+          <input id="e_block" name="block_periods" type="number" min="1" class="form-control"></div>
+      </div>
+      <div class="form-group"><label>Room Type</label>
+        <select id="e_rtype" name="room_type" class="form-control">
+          {% for rt in room_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
+        </select></div>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function fillEdit(id, code, name, kind, weekly, block, rtype) {
+  document.getElementById('e_code').value   = code;
+  document.getElementById('e_name').value   = name;
+  document.getElementById('e_kind').value   = kind;
+  document.getElementById('e_weekly').value = weekly;
+  document.getElementById('e_block').value  = block;
+  document.getElementById('e_rtype').value  = rtype;
+  document.getElementById('editForm').action = `/courses/${id}/edit`;
+  showModal('editModal');
+}
+function toggleBlock(sel) {
+  document.getElementById('block_periods').value = sel.value === 'lab' ? 2 : 1;
+}
+</script>
+{% endblock %}

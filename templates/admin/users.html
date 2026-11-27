@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Users — TimetableGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>User Management</h1>
+  <button class="btn btn-primary" onclick="showModal('addModal')">+ Add User</button>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.name }}</td>
+        <td>{{ u.email }}</td>
+        <td>
+          <span class="badge badge-{% if u.role=='admin' %}danger{% elif u.role=='teacher' %}info{% else %}secondary{% endif %}">
+            {{ u.role }}
+          </span>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-secondary"
+            onclick="showResetModal({{ u.id }}, '{{ u.name }}')">Reset Password</button>
+          {% if u.id != current_user.id %}
+          <form method="POST" action="{{ url_for('user_delete', uid=u.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete user {{ u.name }}?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="center">No users.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Add User</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <form method="POST" action="{{ url_for('user_add') }}">
+      <div class="form-group"><label>Name</label>
+        <input name="name" class="form-control" required placeholder="Dr. R. Sharma"></div>
+      <div class="form-group"><label>Email</label>
+        <input name="email" type="email" class="form-control" required placeholder="teacher@college.edu"></div>
+      <div class="form-group"><label>Password (min 6 chars)</label>
+        <input name="password" type="password" class="form-control" required minlength="6"></div>
+      <div class="form-group"><label>Role</label>
+        <select name="role" class="form-control">
+          <option value="admin">admin</option>
+          <option value="teacher" selected>teacher</option>
+          <option value="student">student</option>
+        </select></div>
+      <button type="submit" class="btn btn-primary">Create User</button>
+    </form>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetModal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Reset Password: <span id="reset_name"></span></h3>
+      <span onclick="hideModal('resetModal')" class="modal-close">✕</span>
+    </div>
+    <form id="resetForm" method="POST">
+      <div class="form-group"><label>New Password (min 6 chars)</label>
+        <input name="password" type="password" class="form-control" required minlength="6"></div>
+      <button type="submit" class="btn btn-primary">Reset Password</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function showResetModal(uid, name) {
+  document.getElementById('reset_name').textContent = name;
+  document.getElementById('resetForm').action = `/users/${uid}/reset-password`;
+  showModal('resetModal');
+}
+</script>
+{% endblock %}

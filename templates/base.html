@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Timetable Generator{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+{% if current_user %}
+<nav class="navbar">
+  <div class="nav-brand">🗓️ TimetableGen</div>
+  <div class="nav-links">
+    {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('dashboard') }}"   class="{% if request.endpoint=='dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('branches') }}"    class="{% if request.endpoint=='branches' %}active{% endif %}">Branches</a>
+      <a href="{{ url_for('sections') }}"    class="{% if request.endpoint=='sections' %}active{% endif %}">Sections</a>
+      <a href="{{ url_for('teachers') }}"    class="{% if request.endpoint=='teachers' %}active{% endif %}">Teachers</a>
+      <a href="{{ url_for('rooms') }}"       class="{% if request.endpoint=='rooms' %}active{% endif %}">Rooms</a>
+      <a href="{{ url_for('courses') }}"     class="{% if request.endpoint=='courses' %}active{% endif %}">Courses</a>
+      <a href="{{ url_for('assignments') }}" class="{% if request.endpoint=='assignments' %}active{% endif %}">Assignments</a>
+      <a href="{{ url_for('users') }}"       class="{% if request.endpoint=='users' %}active{% endif %}">Users</a>
+      <a href="{{ url_for('generate') }}"    class="btn-generate">⚡ Generate</a>
+    {% endif %}
+    <a href="{{ url_for('runs') }}" class="{% if 'run' in request.endpoint %}active{% endif %}">Timetables</a>
+    <span class="nav-user">👤 {{ current_user.name }}</span>
+    <a href="{{ url_for('auth_logout') }}" class="btn-logout">Logout</a>
+  </div>
+</nav>
+{% endif %}
+
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='js/timetable.js') }}"></script>
+</body>
+</html>
