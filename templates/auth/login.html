@@ -8,7 +8,7 @@
     <h2>College Timetable Generator</h2>
     <p class="auth-sub">Sign in to continue</p>
 
-    <form method="POST" action="{{ url_for('auth_login') }}">
+    <form method="POST" action="{{ url_for('auth_login') }}" id="loginForm">
       <div class="form-group">
         <label for="email">Email address</label>
         <input type="email" id="email" name="email" class="form-control"
@@ -20,9 +20,26 @@
                placeholder="••••••••" required>
       </div>
       <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+
+      <div class="demo-box mt-3" style="border-top: 1px dashed var(--border); padding-top: 14px;">
+        <button type="button" class="btn btn-outline btn-block" onclick="fillDemo('admin@college.edu', 'admin123')"
+                title="Click to automatically fill demo credentials">
+          ⚡ Demo: Fill Credentials
+        </button>
+      </div>
     </form>
 
     <p class="auth-hint">Default: admin@college.edu / admin123</p>
   </div>
 </div>
+
+<script>
+function fillDemo(email, password) {
+  const emailInput = document.getElementById('email');
+  const passInput = document.getElementById('password');
+  emailInput.value = email;
+  passInput.value = password;
+  passInput.focus();
+}
+</script>
 {% endblock %}
