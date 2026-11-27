@@ -87,14 +87,24 @@ def load_problem(conn, branch_ids: Optional[List[int]] = None) -> Problem:
         teachers = list(teachers_map.values())
 
         # --- Rooms ---
-        cur.execute("SELECT id, name, room_type, capacity FROM rooms ORDER BY id")
+        cur.execute("""
+            SELECT r.id, r.name, r.room_type, r.capacity, b.code, r.department
+            FROM rooms r
+            LEFT JOIN branches b ON b.id = r.branch_id
+            ORDER BY r.id
+        """)
         rooms = []
         room_db_id = {}
         for row in cur.fetchall():
-            db_id, name, rtype, cap = row
+            db_id = row[0]
+            name  = row[1]
+            rtype = row[2]
+            cap   = row[3]
+            bcode = row[4] if len(row) > 4 else None
+            dept  = row[5] if len(row) > 5 else None
             rid = f"R{db_id}"
             room_db_id[db_id] = rid
-            rooms.append(Room(rid, name, rtype, cap))
+            rooms.append(Room(rid, name, rtype, cap, bcode, dept))
 
         # --- Courses ---
         cur.execute("SELECT id, code, name, kind, weekly_sessions, block_periods, room_type FROM courses ORDER BY id")

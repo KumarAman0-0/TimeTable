@@ -218,7 +218,9 @@ CREATE TABLE IF NOT EXISTS rooms (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     name      TEXT UNIQUE NOT NULL,
     room_type TEXT NOT NULL DEFAULT 'classroom',
-    capacity  INTEGER NOT NULL CHECK (capacity > 0)
+    capacity  INTEGER NOT NULL CHECK (capacity > 0),
+    department TEXT DEFAULT NULL,
+    branch_id INTEGER REFERENCES branches(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS courses (
@@ -304,6 +306,16 @@ def _auto_init(conn):
                 cur.execute("ALTER TABLE timetable_runs ADD COLUMN scope TEXT DEFAULT 'All Branches'")
             except Exception:
                 pass
+
+        # Ensure migration columns exist in rooms table
+        for col, col_type in [("department", "TEXT"), ("branch_id", "INTEGER")]:
+            try:
+                cur.execute(f"SELECT {col} FROM rooms LIMIT 1")
+            except Exception:
+                try:
+                    cur.execute(f"ALTER TABLE rooms ADD COLUMN {col} {col_type} DEFAULT NULL")
+                except Exception:
+                    pass
 
         # Seed admin user
         cur.execute("SELECT id FROM users WHERE email=%s", ("admin@college.edu",))

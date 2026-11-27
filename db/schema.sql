@@ -50,7 +50,9 @@ CREATE TABLE rooms (
     id        SERIAL PRIMARY KEY,
     name      VARCHAR(50) UNIQUE NOT NULL,
     room_type VARCHAR(30) NOT NULL DEFAULT 'classroom',  -- classroom, computer_lab, ...
-    capacity  INT NOT NULL CHECK (capacity > 0)
+    capacity  INT NOT NULL CHECK (capacity > 0),
+    department VARCHAR(100) DEFAULT NULL,
+    branch_id INT REFERENCES branches(id) ON DELETE SET NULL
 );
 
 CREATE TABLE courses (

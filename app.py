@@ -400,30 +400,83 @@ def teacher_unavailability(tid):
 ROOM_TYPES = ["classroom", "computer_lab", "electronics_lab", "workshop", "seminar_hall"]
 
 
+def _parse_room_fields(d):
+    name = d.get("name", "").strip()
+    room_type = d.get("room_type", "classroom").strip()
+    capacity = int(d.get("capacity", 60) or 60)
+
+    # Department with "Other"
+    dept_val = d.get("department", "").strip()
+    if dept_val == "__other__":
+        department = d.get("other_department", "").strip() or None
+    else:
+        department = dept_val or None
+
+    # Branch with "Other"
+    branch_val = d.get("branch_id", "").strip()
+    if branch_val == "__other__":
+        code = d.get("other_branch_code", "").strip().upper()
+        bname = d.get("other_branch_name", "").strip()
+        if code and bname:
+            existing = query("SELECT id FROM branches WHERE code=%s", (code,), one=True)
+            if existing:
+                branch_id = existing["id"]
+            else:
+                execute("INSERT INTO branches (code, name) VALUES (%s, %s)", (code, bname))
+                new_b = query("SELECT id FROM branches WHERE code=%s", (code,), one=True)
+                branch_id = new_b["id"] if new_b else None
+        else:
+            branch_id = None
+    elif branch_val and branch_val.isdigit():
+        branch_id = int(branch_val)
+    else:
+        branch_id = None
+
+    return name, room_type, capacity, department, branch_id
+
+
 @app.route("/rooms")
 @admin_required
 def rooms():
-    rows = query("SELECT * FROM rooms ORDER BY id")
-    return render_template("admin/rooms.html", rooms=rows, room_types=ROOM_TYPES)
+    rows = query("""
+        SELECT r.*, b.code AS branch_code, b.name AS branch_name
+        FROM rooms r
+        LEFT JOIN branches b ON b.id = r.branch_id
+        ORDER BY r.id
+    """)
+    branches = query("SELECT id, code, name FROM branches ORDER BY code")
+
+    dept_rows = query("SELECT DISTINCT department FROM rooms WHERE department IS NOT NULL AND department != '' UNION SELECT DISTINCT department FROM teachers WHERE department IS NOT NULL AND department != '' ORDER BY 1")
+    known_depts = [r[0] for r in dept_rows]
+    default_depts = ["Computer Science", "Mechanical Engineering", "Electronics & Communication", "Applied Sciences & Humanities"]
+    for d in default_depts:
+        if d not in known_depts:
+            known_depts.append(d)
+
+    return render_template("admin/rooms.html", rooms=rows, room_types=ROOM_TYPES, branches=branches, departments=known_depts)
 
 
 @app.route("/rooms/add", methods=["POST"])
 @admin_required
 def room_add():
-    d = request.form
-    execute("INSERT INTO rooms (name, room_type, capacity) VALUES (%s,%s,%s)",
-            (d["name"].strip(), d["room_type"], int(d["capacity"])))
-    flash("Room added.", "success")
+    name, room_type, capacity, department, branch_id = _parse_room_fields(request.form)
+    execute(
+        "INSERT INTO rooms (name, room_type, capacity, department, branch_id) VALUES (%s, %s, %s, %s, %s)",
+        (name, room_type, capacity, department, branch_id)
+    )
+    flash("Room added successfully.", "success")
     return redirect(url_for("rooms"))
 
 
 @app.route("/rooms/<int:rid>/edit", methods=["POST"])
 @admin_required
 def room_edit(rid):
-    d = request.form
-    execute("UPDATE rooms SET name=%s, room_type=%s, capacity=%s WHERE id=%s",
-            (d["name"].strip(), d["room_type"], int(d["capacity"]), rid))
-    flash("Room updated.", "success")
+    name, room_type, capacity, department, branch_id = _parse_room_fields(request.form)
+    execute(
+        "UPDATE rooms SET name=%s, room_type=%s, capacity=%s, department=%s, branch_id=%s WHERE id=%s",
+        (name, room_type, capacity, department, branch_id, rid)
+    )
+    flash("Room updated successfully.", "success")
     return redirect(url_for("rooms"))
 
 

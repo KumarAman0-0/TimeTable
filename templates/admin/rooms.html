@@ -1,34 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Rooms — TimetableGen{% endblock %}
+{% block title %}Rooms & Labs — TimetableGen{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>Rooms &amp; Labs</h1>
+  <div>
+    <h1>Rooms &amp; Labs</h1>
+    <p class="text-muted" style="margin: 4px 0 0;">Manage classrooms, specialized labs, workshops, and department/branch allocations.</p>
+  </div>
   <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Room</button>
 </div>
 
 <div class="card">
   <table class="table">
     <thead>
-      <tr><th>Name</th><th>Type</th><th>Capacity</th><th>Actions</th></tr>
+      <tr>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Branch Allocation</th>
+        <th>Type</th>
+        <th>Capacity</th>
+        <th>Actions</th>
+      </tr>
     </thead>
     <tbody>
       {% for r in rooms %}
       <tr>
-        <td>{{ r.name }}</td>
+        <td><strong>{{ r.name }}</strong></td>
+        <td>
+          {% if r.department %}
+            <span class="badge badge-info">{{ r.department }}</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if r.branch_code %}
+            <span class="badge badge-primary">{{ r.branch_code }} Dedicated</span>
+          {% else %}
+            <span class="badge badge-secondary">🌐 Common Room</span>
+          {% endif %}
+        </td>
         <td><span class="badge badge-secondary">{{ r.room_type }}</span></td>
-        <td>{{ r.capacity }}</td>
+        <td>{{ r.capacity }} seats</td>
         <td>
           <button class="btn btn-sm btn-secondary"
-            onclick="fillEdit({{ r.id }}, '{{ r.name }}', '{{ r.room_type }}', {{ r.capacity }})">Edit</button>
+            onclick="fillEdit({{ r.id }}, '{{ r.name }}', '{{ r.room_type }}', {{ r.capacity }}, '{{ r.department or '' }}', '{{ r.branch_id or '' }}')">Edit</button>
           <form method="POST" action="{{ url_for('room_delete', rid=r.id) }}" style="display:inline"
-                onsubmit="return confirm('Delete room?')">
+                onsubmit="return confirm('Delete room {{ r.name }}?')">
             <button class="btn btn-sm btn-danger">Delete</button>
           </form>
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="4" class="center">No rooms yet.</td></tr>
+      <tr><td colspan="6" class="center">No rooms yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -37,16 +61,65 @@
 <!-- Add Modal -->
 <div id="addModal" class="modal" style="display:none">
   <div class="modal-content">
-    <div class="modal-header"><h3>Add Room</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <div class="modal-header">
+      <h3>Add Room / Lab</h3>
+      <span onclick="hideModal('addModal')" class="modal-close">✕</span>
+    </div>
     <form method="POST" action="{{ url_for('room_add') }}">
-      <div class="form-group"><label>Room Name</label>
-        <input name="name" class="form-control" required placeholder="Room 101"></div>
-      <div class="form-group"><label>Type</label>
-        <select name="room_type" class="form-control">
-          {% for rt in room_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
-        </select></div>
-      <div class="form-group"><label>Capacity</label>
-        <input name="capacity" type="number" min="1" value="60" class="form-control"></div>
+      <div class="form-group">
+        <label>Room Name <span class="text-danger">*</span></label>
+        <input name="name" class="form-control" required placeholder="e.g. Room 101, Computer Lab 1">
+      </div>
+
+      <!-- Department with Other -->
+      <div class="form-group">
+        <label>Department (Optional)</label>
+        <select name="department" class="form-control" onchange="toggleOther(this, 'otherDeptAdd')">
+          <option value="">🌐 Common / No Specific Department</option>
+          {% for d in departments %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherDeptAdd" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">Custom Department Name</label>
+          <input name="other_department" class="form-control" placeholder="Enter department name...">
+        </div>
+      </div>
+
+      <!-- Branch Allocation with Other -->
+      <div class="form-group">
+        <label>Branch Allocation / Dedicated To (Optional)</label>
+        <select name="branch_id" class="form-control" onchange="toggleOther(this, 'otherBranchAdd')">
+          <option value="">🌐 All Branches (Common / Shared Room)</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}">{{ b.code }} — {{ b.name }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherBranchAdd" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">New Branch Details</label>
+          <input name="other_branch_code" class="form-control" placeholder="Branch Code (e.g. AI, IT)" style="margin-bottom:6px;">
+          <input name="other_branch_name" class="form-control" placeholder="Branch Full Name (e.g. Artificial Intelligence)">
+        </div>
+        <small class="text-muted">If dedicated to a branch, only classes of that branch will be scheduled here.</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Room Type</label>
+          <select name="room_type" class="form-control">
+            {% for rt in room_types %}
+            <option value="{{ rt }}">{{ rt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Capacity (Seats)</label>
+          <input name="capacity" type="number" min="1" value="60" class="form-control">
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-primary">Add Room</button>
     </form>
   </div>
@@ -55,25 +128,114 @@
 <!-- Edit Modal -->
 <div id="editModal" class="modal" style="display:none">
   <div class="modal-content">
-    <div class="modal-header"><h3>Edit Room</h3><span onclick="hideModal('editModal')" class="modal-close">✕</span></div>
+    <div class="modal-header">
+      <h3>Edit Room / Lab</h3>
+      <span onclick="hideModal('editModal')" class="modal-close">✕</span>
+    </div>
     <form id="editForm" method="POST">
-      <div class="form-group"><label>Name</label><input id="edit_name" name="name" class="form-control"></div>
-      <div class="form-group"><label>Type</label>
-        <select id="edit_type" name="room_type" class="form-control">
-          {% for rt in room_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
-        </select></div>
-      <div class="form-group"><label>Capacity</label>
-        <input id="edit_cap" name="capacity" type="number" min="1" class="form-control"></div>
-      <button type="submit" class="btn btn-primary">Save</button>
+      <div class="form-group">
+        <label>Room Name <span class="text-danger">*</span></label>
+        <input id="edit_name" name="name" class="form-control" required>
+      </div>
+
+      <!-- Department with Other -->
+      <div class="form-group">
+        <label>Department (Optional)</label>
+        <select id="edit_department" name="department" class="form-control" onchange="toggleOther(this, 'otherDeptEdit')">
+          <option value="">🌐 Common / No Specific Department</option>
+          {% for d in departments %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherDeptEdit" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">Custom Department Name</label>
+          <input id="edit_other_department" name="other_department" class="form-control" placeholder="Enter department name...">
+        </div>
+      </div>
+
+      <!-- Branch Allocation with Other -->
+      <div class="form-group">
+        <label>Branch Allocation / Dedicated To (Optional)</label>
+        <select id="edit_branch_id" name="branch_id" class="form-control" onchange="toggleOther(this, 'otherBranchEdit')">
+          <option value="">🌐 All Branches (Common / Shared Room)</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}">{{ b.code }} — {{ b.name }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherBranchEdit" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">New Branch Details</label>
+          <input id="edit_other_branch_code" name="other_branch_code" class="form-control" placeholder="Branch Code (e.g. AI, IT)" style="margin-bottom:6px;">
+          <input id="edit_other_branch_name" name="other_branch_name" class="form-control" placeholder="Branch Full Name (e.g. Artificial Intelligence)">
+        </div>
+        <small class="text-muted">If dedicated to a branch, only classes of that branch will be scheduled here.</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Room Type</label>
+          <select id="edit_type" name="room_type" class="form-control">
+            {% for rt in room_types %}
+            <option value="{{ rt }}">{{ rt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Capacity (Seats)</label>
+          <input id="edit_cap" name="capacity" type="number" min="1" class="form-control">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
   </div>
 </div>
 
 <script>
-function fillEdit(id, name, type, cap) {
+function toggleOther(selectElem, targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  if (selectElem.value === '__other__') {
+    target.style.display = 'block';
+    const input = target.querySelector('input');
+    if (input) input.focus();
+  } else {
+    target.style.display = 'none';
+  }
+}
+
+function ensureOptionExists(selectElem, val) {
+  if (!val) return;
+  let exists = false;
+  for (let opt of selectElem.options) {
+    if (opt.value === val) {
+      exists = true;
+      break;
+    }
+  }
+  if (!exists) {
+    const newOpt = document.createElement('option');
+    newOpt.value = val;
+    newOpt.textContent = val;
+    selectElem.insertBefore(newOpt, selectElem.lastElementChild);
+  }
+}
+
+function fillEdit(id, name, type, cap, dept, branchId) {
   document.getElementById('edit_name').value = name;
   document.getElementById('edit_type').value = type;
   document.getElementById('edit_cap').value  = cap;
+
+  const deptSelect = document.getElementById('edit_department');
+  ensureOptionExists(deptSelect, dept);
+  deptSelect.value = dept || '';
+  toggleOther(deptSelect, 'otherDeptEdit');
+
+  const branchSelect = document.getElementById('edit_branch_id');
+  branchSelect.value = branchId || '';
+  toggleOther(branchSelect, 'otherBranchEdit');
+
   document.getElementById('editForm').action = `/rooms/${id}/edit`;
   showModal('editModal');
 }

@@ -9,7 +9,7 @@ rooms are still clash-checked on the same clock.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from math import ceil
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, Optional
 
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 SLOT_TIMES = [
@@ -53,6 +53,8 @@ class Room:
     name: str
     tag: str = "classroom"      # 'classroom', 'computer_lab', 'electronics_lab', ...
     capacity: int = 60
+    branch_id: Optional[str] = None
+    department: Optional[str] = None
 
 
 @dataclass
@@ -104,9 +106,12 @@ class Problem:
 
     def rooms_for(self, a: Assignment) -> List[Room]:
         course = self.courses[a.course_id]
-        strength = self.sections[a.section_id].strength
+        section = self.sections[a.section_id]
+        strength = section.strength
         return [r for r in self.rooms.values()
-                if r.tag == course.room_tag and r.capacity >= strength]
+                if r.tag == course.room_tag
+                and r.capacity >= strength
+                and (r.branch_id is None or r.branch_id == section.branch_id)]
 
     def teacher_free(self, teacher_id: str, day: int, slot: int, block: int) -> bool:
         t = self.teachers[teacher_id]
