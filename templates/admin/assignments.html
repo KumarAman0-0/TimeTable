@@ -3,22 +3,31 @@
 
 {% block content %}
 <div class="page-header">
-  <h1>Assignments <small>(Who teaches what to whom)</small></h1>
+  <div>
+    <h1>Assignments <small>(Who teaches what to whom)</small></h1>
+    <p class="text-muted" style="margin: 4px 0 0;">Map subjects and faculty to specific branch sections. Constraints are verified automatically.</p>
+  </div>
   <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Assignment</button>
 </div>
 
 <div class="card">
   <table class="table">
     <thead>
-      <tr><th>Branch</th><th>Section</th><th>Course</th><th>Teacher</th><th>Action</th></tr>
+      <tr>
+        <th>Branch</th>
+        <th>Section</th>
+        <th>Course</th>
+        <th>Teacher</th>
+        <th>Action</th>
+      </tr>
     </thead>
     <tbody>
       {% for a in assignments %}
       <tr>
         <td><span class="badge badge-info">{{ a.branch_code }}</span></td>
-        <td>{{ a.section_name }}</td>
+        <td><strong>{{ a.section_name }}</strong></td>
         <td>{{ a.course_code }} — {{ a.course_name }}</td>
-        <td>{{ a.teacher_name }}</td>
+        <td><strong>{{ a.teacher_name }}</strong></td>
         <td>
           <form method="POST" action="{{ url_for('assignment_delete', aid=a.id) }}" style="display:inline"
                 onsubmit="return confirm('Remove this assignment?')">
@@ -36,26 +45,43 @@
 <!-- Add Modal -->
 <div id="addModal" class="modal" style="display:none">
   <div class="modal-content">
-    <div class="modal-header"><h3>Add Assignment</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <div class="modal-header">
+      <h3>Add Assignment</h3>
+      <span onclick="hideModal('addModal')" class="modal-close">✕</span>
+    </div>
     <form method="POST" action="{{ url_for('assignment_add') }}">
-      <div class="form-group"><label>Section</label>
-        <select name="section_id" class="form-control" required>
+      <div class="form-group">
+        <label>Section <span class="text-danger">*</span></label>
+        <select name="section_id" id="assignment_section_id" class="form-control" required>
           {% for s in sections %}
           <option value="{{ s.id }}">[{{ s.code }}] {{ s.name }}</option>
           {% endfor %}
-        </select></div>
-      <div class="form-group"><label>Course</label>
-        <select name="course_id" class="form-control" required>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Course <span class="text-danger">*</span></label>
+        <select name="course_id" id="assignment_course_id" class="form-control" required>
           {% for c in courses %}
           <option value="{{ c.id }}">{{ c.code }} — {{ c.name }} ({{ c.kind }}, {{ c.weekly_sessions }}×/wk)</option>
           {% endfor %}
-        </select></div>
-      <div class="form-group"><label>Teacher</label>
-        <select name="teacher_id" class="form-control" required>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Teacher <span class="text-danger">*</span></label>
+        <select name="teacher_id" id="assignment_teacher_id" class="form-control" required>
           {% for t in teachers %}
-          <option value="{{ t.id }}">{{ t.name }}</option>
+          <option value="{{ t.id }}">
+            {{ t.name }}
+            {% if t.branch_code %} [{{ t.branch_code }} Only]{% else %} [Flexible]{% endif %}
+            {% if t.specialization %} — {{ t.specialization }}{% endif %}
+          </option>
           {% endfor %}
-        </select></div>
+        </select>
+        <small class="text-muted">Faculty with branch constraints can only be assigned to their corresponding branch.</small>
+      </div>
+
       <button type="submit" class="btn btn-primary">Create Assignment</button>
     </form>
   </div>

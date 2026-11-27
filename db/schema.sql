@@ -33,6 +33,9 @@ CREATE TABLE teachers (
     name          VARCHAR(100) NOT NULL,
     min_per_day   SMALLINT NOT NULL DEFAULT 0,
     max_per_day   SMALLINT NOT NULL DEFAULT 5,
+    department    VARCHAR(100) DEFAULT NULL,
+    branch_id     INT REFERENCES branches(id) ON DELETE SET NULL,
+    specialization VARCHAR(100) DEFAULT NULL,
     CHECK (min_per_day <= max_per_day)
 );
 

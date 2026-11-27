@@ -201,6 +201,9 @@ CREATE TABLE IF NOT EXISTS teachers (
     name          TEXT NOT NULL,
     min_per_day   INTEGER NOT NULL DEFAULT 0,
     max_per_day   INTEGER NOT NULL DEFAULT 5,
+    department    TEXT DEFAULT NULL,
+    branch_id     INTEGER REFERENCES branches(id) ON DELETE SET NULL,
+    specialization TEXT DEFAULT NULL,
     CHECK (min_per_day <= max_per_day)
 );
 
@@ -281,6 +284,16 @@ def _auto_init(conn):
             if os.path.exists(schema_path):
                 with open(schema_path) as f:
                     cur.execute(f.read())
+
+        # Ensure migration columns exist in teachers table
+        for col, col_type in [("department", "TEXT"), ("branch_id", "INTEGER"), ("specialization", "TEXT")]:
+            try:
+                cur.execute(f"SELECT {col} FROM teachers LIMIT 1")
+            except Exception:
+                try:
+                    cur.execute(f"ALTER TABLE teachers ADD COLUMN {col} {col_type} DEFAULT NULL")
+                except Exception:
+                    pass
 
         # Seed admin user
         cur.execute("SELECT id FROM users WHERE email=%s", ("admin@college.edu",))

@@ -270,32 +270,103 @@ def section_delete(sid):
 # Teachers
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _parse_teacher_fields(d):
+    name = d.get("name", "").strip()
+    min_per_day = int(d.get("min_per_day", 0) or 0)
+    max_per_day = int(d.get("max_per_day", 5) or 5)
+
+    # Department with "Other"
+    dept_val = d.get("department", "").strip()
+    if dept_val == "__other__":
+        department = d.get("other_department", "").strip() or None
+    else:
+        department = dept_val or None
+
+    # Branch with "Other"
+    branch_val = d.get("branch_id", "").strip()
+    if branch_val == "__other__":
+        code = d.get("other_branch_code", "").strip().upper()
+        bname = d.get("other_branch_name", "").strip()
+        if code and bname:
+            existing = query("SELECT id FROM branches WHERE code=%s", (code,), one=True)
+            if existing:
+                branch_id = existing["id"]
+            else:
+                execute("INSERT INTO branches (code, name) VALUES (%s, %s)", (code, bname))
+                new_b = query("SELECT id FROM branches WHERE code=%s", (code,), one=True)
+                branch_id = new_b["id"] if new_b else None
+        else:
+            branch_id = None
+    elif branch_val and branch_val.isdigit():
+        branch_id = int(branch_val)
+    else:
+        branch_id = None
+
+    # Specialization / Subject with "Other"
+    spec_val = d.get("specialization", "").strip()
+    if spec_val == "__other__":
+        specialization = d.get("other_specialization", "").strip() or None
+    else:
+        specialization = spec_val or None
+
+    return name, min_per_day, max_per_day, department, branch_id, specialization
+
+
 @app.route("/teachers")
 @admin_required
 def teachers():
-    rows = query("SELECT * FROM teachers ORDER BY id")
+    rows = query("""
+        SELECT t.*, b.code AS branch_code, b.name AS branch_name
+        FROM teachers t
+        LEFT JOIN branches b ON b.id = t.branch_id
+        ORDER BY t.id
+    """)
     unavail = {}
     for r in query("SELECT teacher_id, day, slot FROM teacher_unavailability"):
         unavail.setdefault(r["teacher_id"], []).append((r["day"], r["slot"]))
-    return render_template("admin/teachers.html", teachers=rows, unavail=unavail)
+
+    branches = query("SELECT id, code, name FROM branches ORDER BY code")
+    courses = query("SELECT id, code, name FROM courses ORDER BY name")
+
+    # Collect existing unique departments
+    dept_rows = query("SELECT DISTINCT department FROM teachers WHERE department IS NOT NULL AND department != '' ORDER BY department")
+    known_depts = [r["department"] for r in dept_rows]
+    default_depts = ["Computer Science", "Mechanical Engineering", "Electronics & Communication", "Applied Sciences & Humanities"]
+    for d in default_depts:
+        if d not in known_depts:
+            known_depts.append(d)
+
+    return render_template(
+        "admin/teachers.html",
+        teachers=rows,
+        unavail=unavail,
+        branches=branches,
+        courses=courses,
+        departments=known_depts
+    )
 
 
 @app.route("/teachers/add", methods=["POST"])
 @admin_required
 def teacher_add():
-    d = request.form
-    execute("INSERT INTO teachers (name, min_per_day, max_per_day) VALUES (%s,%s,%s)",
-            (d["name"].strip(), int(d["min_per_day"]), int(d["max_per_day"])))
-    flash("Teacher added.", "success")
+    name, min_pd, max_pd, dept, branch_id, spec = _parse_teacher_fields(request.form)
+    execute(
+        "INSERT INTO teachers (name, min_per_day, max_per_day, department, branch_id, specialization) "
+        "VALUES (%s, %s, %s, %s, %s, %s)",
+        (name, min_pd, max_pd, dept, branch_id, spec)
+    )
+    flash("Teacher added successfully.", "success")
     return redirect(url_for("teachers"))
 
 
 @app.route("/teachers/<int:tid>/edit", methods=["POST"])
 @admin_required
 def teacher_edit(tid):
-    d = request.form
-    execute("UPDATE teachers SET name=%s, min_per_day=%s, max_per_day=%s WHERE id=%s",
-            (d["name"].strip(), int(d["min_per_day"]), int(d["max_per_day"]), tid))
+    name, min_pd, max_pd, dept, branch_id, spec = _parse_teacher_fields(request.form)
+    execute(
+        "UPDATE teachers SET name=%s, min_per_day=%s, max_per_day=%s, department=%s, branch_id=%s, specialization=%s WHERE id=%s",
+        (name, min_pd, max_pd, dept, branch_id, spec, tid)
+    )
     flash("Teacher updated.", "success")
     return redirect(url_for("teachers"))
 
@@ -429,7 +500,12 @@ def assignments():
     """)
     sections = query("SELECT s.id, s.name, b.code FROM sections s JOIN branches b ON b.id=s.branch_id ORDER BY b.code,s.name")
     courses  = query("SELECT * FROM courses ORDER BY code")
-    teachers = query("SELECT * FROM teachers ORDER BY name")
+    teachers = query("""
+        SELECT t.id, t.name, t.department, t.specialization, b.code AS branch_code
+        FROM teachers t
+        LEFT JOIN branches b ON b.id = t.branch_id
+        ORDER BY t.name
+    """)
     return render_template("admin/assignments.html",
                            assignments=rows, sections=sections,
                            courses=courses, teachers=teachers)
@@ -439,10 +515,36 @@ def assignments():
 @admin_required
 def assignment_add():
     d = request.form
+    section_id = int(d["section_id"])
+    course_id  = int(d["course_id"])
+    teacher_id = int(d["teacher_id"])
+
+    # Smart Constraint Validation
+    teacher = query("SELECT name, branch_id, specialization FROM teachers WHERE id=%s", (teacher_id,), one=True)
+    section = query("SELECT s.name, s.branch_id, b.code as branch_code FROM sections s JOIN branches b ON b.id=s.branch_id WHERE s.id=%s", (section_id,), one=True)
+    course  = query("SELECT code, name FROM courses WHERE id=%s", (course_id,), one=True)
+
+    if teacher and section:
+        # Check Branch restriction (if teacher has a fixed branch)
+        if teacher["branch_id"] is not None and teacher["branch_id"] != section["branch_id"]:
+            tb = query("SELECT code FROM branches WHERE id=%s", (teacher["branch_id"],), one=True)
+            tb_code = tb["code"] if tb else "another"
+            flash(f"⚠️ Constraint Blocked: {teacher['name']} is restricted to {tb_code} branch only and cannot be assigned to {section['branch_code']} ({section['name']}).", "danger")
+            return redirect(url_for("assignments"))
+
+        # Check Specialization restriction (if teacher has a fixed course specialization)
+        if teacher["specialization"]:
+            spec_lower = teacher["specialization"].lower()
+            cname_lower = course["name"].lower() if course else ""
+            ccode_lower = course["code"].lower() if course else ""
+            if spec_lower not in cname_lower and cname_lower not in spec_lower and spec_lower != ccode_lower:
+                flash(f"⚠️ Constraint Blocked: {teacher['name']} is restricted to '{teacher['specialization']}' only and cannot teach '{course['code']} - {course['name']}'.", "danger")
+                return redirect(url_for("assignments"))
+
     try:
         execute("INSERT INTO assignments (section_id, course_id, teacher_id) VALUES (%s,%s,%s)",
-                (int(d["section_id"]), int(d["course_id"]), int(d["teacher_id"])))
-        flash("Assignment added.", "success")
+                (section_id, course_id, teacher_id))
+        flash("Assignment added successfully.", "success")
     except Exception as e:
         if is_unique_violation(e):
             flash("This section already has this course assigned.", "danger")

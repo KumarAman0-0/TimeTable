@@ -184,10 +184,20 @@ a:hover { text-decoration: underline; }
   font-weight: 600;
 }
 .badge-info     { background: #E3F2FD; color: var(--info); }
+.badge-primary  { background: #E8EEF5; color: var(--primary); font-weight: 700; }
 .badge-success  { background: #E8F5E9; color: #2E7D32; }
 .badge-warning  { background: #FFF8E1; color: #E65100; }
 .badge-danger   { background: #FFEBEE; color: #C62828; }
 .badge-secondary{ background: #EEEEEE; color: #555; }
+
+.other-input-box {
+  background: #F8FAFC;
+  border: 1px dashed var(--primary-lt);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 8px;
+  animation: fadeIn 0.2s ease-in-out;
+}
 
 /* ── Forms ──────────────────────────────────────────────────── */
 .form-group { margin-bottom: 14px; }

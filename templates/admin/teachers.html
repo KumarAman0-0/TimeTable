@@ -3,21 +3,52 @@
 
 {% block content %}
 <div class="page-header">
-  <h1>Teachers</h1>
+  <div>
+    <h1>Teachers</h1>
+    <p class="text-muted" style="margin: 4px 0 0;">Manage faculty, department affiliations, branch constraints, and availability.</p>
+  </div>
   <button class="btn btn-primary" onclick="showModal('addModal')">+ Add Teacher</button>
 </div>
 
 <div class="card">
   <table class="table">
     <thead>
-      <tr><th>Name</th><th>Min/Day</th><th>Max/Day</th><th>Unavailable Slots</th><th>Actions</th></tr>
+      <tr>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Branch Constraint</th>
+        <th>Specialization / Subject</th>
+        <th>Min/Max Day</th>
+        <th>Unavailable Slots</th>
+        <th>Actions</th>
+      </tr>
     </thead>
     <tbody>
       {% for t in teachers %}
       <tr>
-        <td>{{ t.name }}</td>
-        <td>{{ t.min_per_day }}</td>
-        <td>{{ t.max_per_day }}</td>
+        <td><strong>{{ t.name }}</strong></td>
+        <td>
+          {% if t.department %}
+            <span class="badge badge-info">{{ t.department }}</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if t.branch_code %}
+            <span class="badge badge-primary">{{ t.branch_code }} Only</span>
+          {% else %}
+            <span class="badge badge-secondary">🌐 All Branches</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if t.specialization %}
+            <span class="badge badge-warning">{{ t.specialization }}</span>
+          {% else %}
+            <span class="text-muted">📚 Any Course</span>
+          {% endif %}
+        </td>
+        <td>{{ t.min_per_day }} / {{ t.max_per_day }}</td>
         <td>
           {% set ua = unavail.get(t.id, []) %}
           {% if ua %}
@@ -29,7 +60,7 @@
         </td>
         <td>
           <button class="btn btn-sm btn-secondary"
-            onclick="fillEdit({{ t.id }}, '{{ t.name }}', {{ t.min_per_day }}, {{ t.max_per_day }})">Edit</button>
+            onclick="fillEdit({{ t.id }}, '{{ t.name }}', {{ t.min_per_day }}, {{ t.max_per_day }}, '{{ t.department or '' }}', '{{ t.branch_id or '' }}', '{{ t.specialization or '' }}')">Edit</button>
           <form method="POST" action="{{ url_for('teacher_delete', tid=t.id) }}" style="display:inline"
                 onsubmit="return confirm('Delete teacher {{ t.name }}?')">
             <button class="btn btn-sm btn-danger">Delete</button>
@@ -37,7 +68,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="center">No teachers yet.</td></tr>
+      <tr><td colspan="7" class="center">No teachers yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -46,16 +77,78 @@
 <!-- Add Modal -->
 <div id="addModal" class="modal" style="display:none">
   <div class="modal-content">
-    <div class="modal-header"><h3>Add Teacher</h3><span onclick="hideModal('addModal')" class="modal-close">✕</span></div>
+    <div class="modal-header">
+      <h3>Add Teacher</h3>
+      <span onclick="hideModal('addModal')" class="modal-close">✕</span>
+    </div>
     <form method="POST" action="{{ url_for('teacher_add') }}">
-      <div class="form-group"><label>Name</label>
-        <input name="name" class="form-control" required placeholder="Dr. R. Sharma"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Min periods/day (soft)</label>
-          <input name="min_per_day" type="number" min="0" max="8" value="2" class="form-control"></div>
-        <div class="form-group"><label>Max periods/day (hard)</label>
-          <input name="max_per_day" type="number" min="1" max="8" value="5" class="form-control"></div>
+      <div class="form-group">
+        <label>Teacher Name <span class="text-danger">*</span></label>
+        <input name="name" class="form-control" required placeholder="e.g. Dr. R. Sharma">
       </div>
+
+      <!-- Department with Other -->
+      <div class="form-group">
+        <label>Department (Optional)</label>
+        <select name="department" class="form-control" onchange="toggleOther(this, 'otherDeptAdd')">
+          <option value="">🌐 Flexible / No Specific Department</option>
+          {% for d in departments %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherDeptAdd" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">Custom Department Name</label>
+          <input name="other_department" class="form-control" placeholder="Enter department name...">
+        </div>
+      </div>
+
+      <!-- Branch Constraint with Other -->
+      <div class="form-group">
+        <label>Branch Restriction (Optional)</label>
+        <select name="branch_id" class="form-control" onchange="toggleOther(this, 'otherBranchAdd')">
+          <option value="">🌐 All Branches (Flexible / Universal)</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}">{{ b.code }} — {{ b.name }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherBranchAdd" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">New Branch Details</label>
+          <input name="other_branch_code" class="form-control" placeholder="Branch Code (e.g. AI, IT)" style="margin-bottom:6px;">
+          <input name="other_branch_name" class="form-control" placeholder="Branch Full Name (e.g. Artificial Intelligence)">
+        </div>
+        <small class="text-muted">If chosen, this teacher will only take lectures for this branch.</small>
+      </div>
+
+      <!-- Subject / Specialization with Other -->
+      <div class="form-group">
+        <label>Subject / Specialization (Optional)</label>
+        <select name="specialization" class="form-control" onchange="toggleOther(this, 'otherSpecAdd')">
+          <option value="">📚 All Subjects (Flexible / Any Course)</option>
+          {% for c in courses %}
+          <option value="{{ c.name }}">{{ c.code }} — {{ c.name }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherSpecAdd" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">Custom Subject / Specialization Name</label>
+          <input name="other_specialization" class="form-control" placeholder="Enter subject name (e.g. Machine Learning)...">
+        </div>
+        <small class="text-muted">If chosen, teacher can only be assigned to this subject.</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Min periods/day (soft)</label>
+          <input name="min_per_day" type="number" min="0" max="8" value="2" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Max periods/day (hard)</label>
+          <input name="max_per_day" type="number" min="1" max="8" value="5" class="form-control">
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-primary">Add Teacher</button>
     </form>
   </div>
@@ -64,16 +157,78 @@
 <!-- Edit Modal -->
 <div id="editModal" class="modal" style="display:none">
   <div class="modal-content">
-    <div class="modal-header"><h3>Edit Teacher</h3><span onclick="hideModal('editModal')" class="modal-close">✕</span></div>
+    <div class="modal-header">
+      <h3>Edit Teacher</h3>
+      <span onclick="hideModal('editModal')" class="modal-close">✕</span>
+    </div>
     <form id="editForm" method="POST">
-      <div class="form-group"><label>Name</label><input id="edit_name" name="name" class="form-control" required></div>
-      <div class="form-row">
-        <div class="form-group"><label>Min/Day</label>
-          <input id="edit_min" name="min_per_day" type="number" min="0" max="8" class="form-control"></div>
-        <div class="form-group"><label>Max/Day</label>
-          <input id="edit_max" name="max_per_day" type="number" min="1" max="8" class="form-control"></div>
+      <div class="form-group">
+        <label>Teacher Name <span class="text-danger">*</span></label>
+        <input id="edit_name" name="name" class="form-control" required>
       </div>
-      <button type="submit" class="btn btn-primary">Save</button>
+
+      <!-- Department with Other -->
+      <div class="form-group">
+        <label>Department (Optional)</label>
+        <select id="edit_department" name="department" class="form-control" onchange="toggleOther(this, 'otherDeptEdit')">
+          <option value="">🌐 Flexible / No Specific Department</option>
+          {% for d in departments %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherDeptEdit" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">Custom Department Name</label>
+          <input id="edit_other_department" name="other_department" class="form-control" placeholder="Enter department name...">
+        </div>
+      </div>
+
+      <!-- Branch Constraint with Other -->
+      <div class="form-group">
+        <label>Branch Restriction (Optional)</label>
+        <select id="edit_branch_id" name="branch_id" class="form-control" onchange="toggleOther(this, 'otherBranchEdit')">
+          <option value="">🌐 All Branches (Flexible / Universal)</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}">{{ b.code }} — {{ b.name }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherBranchEdit" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">New Branch Details</label>
+          <input id="edit_other_branch_code" name="other_branch_code" class="form-control" placeholder="Branch Code (e.g. AI, IT)" style="margin-bottom:6px;">
+          <input id="edit_other_branch_name" name="other_branch_name" class="form-control" placeholder="Branch Full Name (e.g. Artificial Intelligence)">
+        </div>
+        <small class="text-muted">If chosen, this teacher will only take lectures for this branch.</small>
+      </div>
+
+      <!-- Subject / Specialization with Other -->
+      <div class="form-group">
+        <label>Subject / Specialization (Optional)</label>
+        <select id="edit_specialization" name="specialization" class="form-control" onchange="toggleOther(this, 'otherSpecEdit')">
+          <option value="">📚 All Subjects (Flexible / Any Course)</option>
+          {% for c in courses %}
+          <option value="{{ c.name }}">{{ c.code }} — {{ c.name }}</option>
+          {% endfor %}
+          <option value="__other__">➕ Other (Type Manually...)</option>
+        </select>
+        <div id="otherSpecEdit" class="other-input-box" style="display:none;">
+          <label style="font-size:0.8rem; margin-bottom:2px;">Custom Subject / Specialization Name</label>
+          <input id="edit_other_specialization" name="other_specialization" class="form-control" placeholder="Enter subject name...">
+        </div>
+        <small class="text-muted">If chosen, teacher can only be assigned to this subject.</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Min/Day</label>
+          <input id="edit_min" name="min_per_day" type="number" min="0" max="8" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Max/Day</label>
+          <input id="edit_max" name="max_per_day" type="number" min="1" max="8" class="form-control">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
   </div>
 </div>
@@ -122,13 +277,58 @@
 </div>
 
 <script>
-const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat'];
-const SLOTS = ['09:00','09:50','10:40','11:30','12:20','13:10','14:00','14:50'];
+function toggleOther(selectElem, targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  if (selectElem.value === '__other__') {
+    target.style.display = 'block';
+    const input = target.querySelector('input');
+    if (input) input.focus();
+  } else {
+    target.style.display = 'none';
+  }
+}
 
-function fillEdit(id, name, mn, mx) {
+function ensureOptionExists(selectElem, val) {
+  if (!val) return;
+  let exists = false;
+  for (let opt of selectElem.options) {
+    if (opt.value === val) {
+      exists = true;
+      break;
+    }
+  }
+  if (!exists) {
+    const newOpt = document.createElement('option');
+    newOpt.value = val;
+    newOpt.textContent = val;
+    // Insert before "__other__" option
+    selectElem.insertBefore(newOpt, selectElem.lastElementChild);
+  }
+}
+
+function fillEdit(id, name, mn, mx, dept, branchId, spec) {
   document.getElementById('edit_name').value = name;
   document.getElementById('edit_min').value  = mn;
   document.getElementById('edit_max').value  = mx;
+
+  // Department
+  const deptSelect = document.getElementById('edit_department');
+  ensureOptionExists(deptSelect, dept);
+  deptSelect.value = dept || '';
+  toggleOther(deptSelect, 'otherDeptEdit');
+
+  // Branch
+  const branchSelect = document.getElementById('edit_branch_id');
+  branchSelect.value = branchId || '';
+  toggleOther(branchSelect, 'otherBranchEdit');
+
+  // Specialization
+  const specSelect = document.getElementById('edit_specialization');
+  ensureOptionExists(specSelect, spec);
+  specSelect.value = spec || '';
+  toggleOther(specSelect, 'otherSpecEdit');
+
   document.getElementById('editForm').action = `/teachers/${id}/edit`;
   showModal('editModal');
 }
