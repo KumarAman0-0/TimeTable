@@ -57,10 +57,16 @@ class TestAuthRoutes(unittest.TestCase):
         self.app    = _make_app()
         self.client = self.app.test_client()
 
-    def test_root_redirects_to_login(self):
-        rv = self.client.get("/", follow_redirects=False)
-        self.assertIn(rv.status_code, (301, 302))
-        self.assertIn("login", rv.headers.get("Location", ""))
+    def test_root_renders_home_page(self):
+        rv = self.client.get("/")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(b"Timetable", rv.data)
+        self.assertIn(b"Sign In", rv.data)
+
+    def test_home_route_renders_home_page(self):
+        rv = self.client.get("/home")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn(b"Timetable", rv.data)
 
     def test_login_page_returns_200(self):
         rv = self.client.get("/login")

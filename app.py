@@ -77,10 +77,24 @@ def inject_user():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/")
+@app.route("/home")
 def index():
-    if "user_id" in session:
-        return redirect(url_for("dashboard"))
-    return redirect(url_for("auth_login"))
+    recent_runs = []
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT r.id, r.run_name, r.solver_used, r.total_clashes,
+                       r.status, r.created_at, b.name AS branch_name
+                FROM timetable_runs r
+                LEFT JOIN branches b ON r.branch_id = b.id
+                WHERE r.status = 'published'
+                ORDER BY r.created_at DESC LIMIT 3
+            """)
+            recent_runs = cur.fetchall()
+    except Exception:
+        recent_runs = []
+    return render_template("home.html", recent_runs=recent_runs)
 
 
 @app.route("/login", methods=["GET", "POST"])

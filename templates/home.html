@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}Home — Automated College Timetable Generator{% endblock %}
+{% block container_class %}landing-container{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+
+  <!-- ── Hero Section ───────────────────────────────────────────── -->
+  <section class="landing-hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-icon">⚡</span>
+        <span>AI-Powered Academic Timetable Generator</span>
+      </div>
+      <h1 class="hero-title">
+        Smart, Clash-Free College Schedules <span class="text-gradient">in Seconds</span>
+      </h1>
+      <p class="hero-subtitle">
+        Eliminate scheduling conflicts effortlessly. Our dual constraint-solving engine coordinates departments, faculty workloads, specialized computer labs, and lecture halls into optimal weekly timetables.
+      </p>
+
+      {% if current_user %}
+        <div class="logged-in-banner">
+          <div class="user-greeting">
+            <span class="greeting-avatar">👤</span>
+            <div>
+              <strong>Welcome back, {{ current_user.name }}!</strong>
+              <div class="greeting-sub">Role: {{ current_user.role|capitalize }}</div>
+            </div>
+          </div>
+          <div class="hero-actions">
+            {% if current_user.role == 'admin' %}
+              <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">📊 Open Dashboard</a>
+              <a href="{{ url_for('generate') }}" class="btn btn-accent btn-lg">⚡ Generate Timetable</a>
+            {% else %}
+              <a href="{{ url_for('runs') }}" class="btn btn-primary btn-lg">📅 View Timetables</a>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="hero-actions">
+          <a href="{{ url_for('auth_login') }}" class="btn btn-primary btn-lg">
+            <span>🚀 Sign In to Dashboard</span>
+          </a>
+          <a href="{{ url_for('runs') }}" class="btn btn-outline btn-lg">
+            <span>📅 View Timetables</span>
+          </a>
+          <a href="{{ url_for('auth_register') }}" class="btn btn-ghost btn-lg">
+            <span>📝 Register</span>
+          </a>
+        </div>
+        <div class="hero-demo-tip">
+          <span>💡 <strong>Quick Demo:</strong> Try credentials <code>admin@college.edu</code> / <code>admin123</code></span>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Hero Timetable Mockup Visual Card -->
+    <div class="hero-visual">
+      <div class="mockup-card">
+        <div class="mockup-header">
+          <div class="mockup-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div class="mockup-title">CSE-3A • Weekly Timetable (Sample)</div>
+          <span class="mockup-badge">✓ 0 Clashes</span>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-grid-header">
+            <span>Day</span>
+            <span>09:00 - 10:00</span>
+            <span>10:00 - 11:00</span>
+            <span>11:15 - 12:15</span>
+          </div>
+          <div class="mockup-row">
+            <span class="day-label">Mon</span>
+            <div class="mockup-slot slot-blue">
+              <strong>Data Structures</strong>
+              <small>Room 101 • Dr. Sharma</small>
+            </div>
+            <div class="mockup-slot slot-purple">
+              <strong>Algorithms Lab</strong>
+              <small>Comp Lab 1 • Prof. Verma</small>
+            </div>
+            <div class="mockup-slot slot-teal">
+              <strong>OS Theory</strong>
+              <small>Room 102 • Dr. Rao</small>
+            </div>
+          </div>
+          <div class="mockup-row">
+            <span class="day-label">Tue</span>
+            <div class="mockup-slot slot-orange">
+              <strong>Database Sys</strong>
+              <small>Room 201 • Prof. Gupta</small>
+            </div>
+            <div class="mockup-slot slot-blue">
+              <strong>Data Structures</strong>
+              <small>Room 101 • Dr. Sharma</small>
+            </div>
+            <div class="mockup-slot slot-green">
+              <strong>Discrete Maths</strong>
+              <small>Room 103 • Dr. Singh</small>
+            </div>
+          </div>
+          <div class="mockup-footer">
+            <span class="live-pulse"></span>
+            <span>Heuristic & CP-SAT Engine Active • Verified Safe</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Capability Metrics Bar ─────────────────────────────────── -->
+  <section class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-number">100%</div>
+      <div class="stat-label">Clash-Free Guarantee</div>
+      <div class="stat-sub">Strict checks on faculty & room overlaps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">&lt; 5s</div>
+      <div class="stat-label">Rapid Heuristic Solver</div>
+      <div class="stat-sub">Real-time scheduling in seconds</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">Multi-Dept</div>
+      <div class="stat-label">Selective Branch Targeting</div>
+      <div class="stat-sub">Generate all branches or single stream</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">Excel & PDF</div>
+      <div class="stat-label">Institutional Exports</div>
+      <div class="stat-sub">Ready-to-print schedules for notice boards</div>
+    </div>
+  </section>
+
+  <!-- ── Core Features Section ──────────────────────────────────── -->
+  <section class="features-section" id="features">
+    <div class="section-heading">
+      <span class="section-tag">Powerful Capabilities</span>
+      <h2>Engineered for College Academic Needs</h2>
+      <p>Everything your administration needs to eliminate manual scheduling chaos and timetable errors.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Dual Solver Engines</h3>
+        <p>Switch between ultra-fast <strong>Heuristic Randomized Greedy</strong> (finishes under 5 seconds) and <strong>Google OR-Tools CP-SAT</strong> for mathematically optimal constraint satisfaction.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🏢</div>
+        <h3>Selective Branch Scheduling</h3>
+        <p>Target a single branch (e.g., Computer Science, Mechanical) or generate the entire college schedule simultaneously with automated cross-branch clash prevention.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👨‍🏫</div>
+        <h3>Faculty Workload & Specialization</h3>
+        <p>Assign professors strictly within their subject specialization domains and maintain balance against weekly maximum lecture hours.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🏫</div>
+        <h3>Smart Room & Lab Allocation</h3>
+        <p>Automatically maps theoretical lectures to lecture halls and hands-on practical sessions to designated Computer Labs or Electronics Workshops.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Multi-Dimensional Timetable Grid</h3>
+        <p>View, filter, and inspect timetables from three distinct perspectives: by <strong>Student Section</strong>, by <strong>Faculty Member</strong>, or by <strong>Room/Lab</strong>.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🖨️</div>
+        <h3>Instant Excel & PDF Downloads</h3>
+        <p>Export published schedules directly into styled Excel spreadsheets (`.xlsx`) or professional printable PDFs formatted for campus display.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How It Works Section ───────────────────────────────────── -->
+  <section class="how-section" id="how-it-works">
+    <div class="section-heading">
+      <span class="section-tag">Simple Workflow</span>
+      <h2>Generate Clash-Free Schedules in 3 Steps</h2>
+      <p>Clean, intuitive administrative pipeline from data entry to published master schedule.</p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <h3>Setup Campus Assets</h3>
+        <p>Enter your branches, sections, faculty specialization domains, lecture rooms, computer labs, and course credit hours.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-arrow">➔</div>
+        <div class="step-number">02</div>
+        <h3>Run AI Generator</h3>
+        <p>Select your scope (All Branches or Specific Branch) and solver. Track progress with a real-time stopwatch and conflict detector.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <h3>Inspect & Publish</h3>
+        <p>Review the clash report, publish the master schedule, and download polished PDFs and Excel sheets for distribution.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Recent Timetables Section (if any published) ───────────── -->
+  {% if recent_runs %}
+  <section class="recent-section">
+    <div class="section-heading">
+      <span class="section-tag">Public Access</span>
+      <h2>Recently Published Timetables</h2>
+      <p>Access active class schedules directly without logging in.</p>
+    </div>
+
+    <div class="recent-grid">
+      {% for r in recent_runs %}
+      <div class="recent-card">
+        <div class="recent-badge">✓ Active Schedule</div>
+        <h4>{{ r.run_name }}</h4>
+        <div class="recent-meta">
+          <span>🏢 {{ r.branch_name or 'All Branches' }}</span>
+          <span>⚡ {{ r.solver_used|capitalize }}</span>
+          <span>🗓️ {{ r.created_at[:10] if r.created_at else '' }}</span>
+        </div>
+        <a href="{{ url_for('run_view', run_id=r.id) }}" class="btn btn-outline btn-sm btn-block mt-2">
+          View Timetable Grid →
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-3">
+      <a href="{{ url_for('runs') }}" class="btn btn-ghost">View All Timetables →</a>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Call to Action Banner ─────────────────────────────────── -->
+  <section class="cta-banner">
+    <div class="cta-inner">
+      <h2>Ready to streamline your college timetables?</h2>
+      <p>Sign in to configure your college data and generate clash-free schedules in minutes.</p>
+      <div class="cta-buttons">
+        {% if current_user %}
+          <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        {% else %}
+          <a href="{{ url_for('auth_login') }}" class="btn btn-primary btn-lg">Sign In to Dashboard</a>
+          <a href="{{ url_for('auth_register') }}" class="btn btn-outline btn-lg" style="color:#fff; border-color:rgba(255,255,255,0.4);">Create Account</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────────────── -->
+  <footer class="landing-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="footer-logo">🗓️ TimetableGen</div>
+        <p>Automated, intelligent college scheduling platform. Eliminating academic conflicts and optimizing campus resources.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <strong>Navigation</strong>
+          <a href="{{ url_for('index') }}">Home</a>
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="{{ url_for('runs') }}">Timetables</a>
+        </div>
+        <div class="footer-col">
+          <strong>Portal Access</strong>
+          <a href="{{ url_for('auth_login') }}">Sign In</a>
+          <a href="{{ url_for('auth_register') }}">Register Account</a>
+          <a href="{{ url_for('runs') }}">Public Schedules</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 TimetableGen • College Academic Scheduling System. All rights reserved.</p>
+    </div>
+  </footer>
+
+</div>
+{% endblock %}
