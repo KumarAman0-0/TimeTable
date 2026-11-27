@@ -504,6 +504,16 @@ def generate():
         else:
             flash("❌ No feasible timetable found. Add more rooms/teachers or relax constraints.", "danger")
 
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return jsonify({
+                "success": bool(entries),
+                "run_id": run_id,
+                "redirect_url": url_for("run_detail", run_id=run_id),
+                "elapsed": elapsed,
+                "hard_violations": len(hard),
+                "soft_warnings": len(soft)
+            })
+
         return redirect(url_for("run_detail", run_id=run_id))
 
     return render_template("admin/generate.html",
